@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
+#define MODEMDEVICE "/dev/ttyS10"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
@@ -18,13 +18,12 @@ int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    char buf[255];
     int i = 0, sum = 0, speed = 0;
     
     if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
-      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+  	     ((strcmp("/dev/ttyS10", argv[1])!=0) && 
+  	      (strcmp("/dev/ttyS11", argv[1])!=0) )) {
+      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS10\n");
       exit(1);
     }
 
@@ -58,7 +57,7 @@ int main(int argc, char** argv)
 
   /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) próximo(s) caracter(es)
+    leitura do(s) prï¿½ximo(s) caracter(es)
   */
 
 
@@ -72,18 +71,27 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-    int size = strlen(fgets(buf, 255, stdin));
+    // 0x7E - Flag
+    // 0x03 - A
+    // 0x03 - C
+    // A^C  - BCC
+
+    unsigned char flag = 0x7E;
+    unsigned char a = 0x03;
+    unsigned char c_var = 0x03;
+    unsigned char bcc = a^c_var;
+    unsigned char *buf[] = {flag, a, c_var, bcc, flag};	
     
-    if (buf[size] != '\0')
-        perror("Invalid string");
-    
-    res = write(fd,buf,size+1);   
+    for (int k = 0; k < 5; k++) {
+      res += write(fd,buf[k],255);
+      //printf("%u\n", (unsigned int)buf[k]);
+    }
+       
     printf("%d bytes written\n", res);
  
-
   /* 
-    O ciclo FOR e as instruções seguintes devem ser alterados de modo a respeitar 
-    o indicado no guião 
+    O ciclo FOR e as instruÃ§Ãµes seguintes devem ser alterados de modo a respeitar 
+    o indicado no guiÃ£o 
   */
     
     while (STOP==FALSE) {       /* loop for input */

@@ -141,6 +141,8 @@ int llopen(int fd)
 }
 
 int llwrite(){
+    
+    return 0;
     // to do
 } 
 

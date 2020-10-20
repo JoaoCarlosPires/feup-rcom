@@ -8,6 +8,7 @@ int llopen(char* porta, int flag) {
 
 	if (flag == TRANSMITTER) {
 		//call writenoncanonical code
+	}
 	else if (flag == RECEIVER) {
 		//call noncanonical code
 	}

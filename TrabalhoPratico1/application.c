@@ -8,8 +8,11 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <string.h>
+#include <signal.h>
 
 char * buffer;
+
+
 
 /** 
  * processFile - prepara o array de caracteres que será enviado do emissor para o receptor, colocando-o na variável global *buffer*
@@ -24,6 +27,8 @@ int main(int argc, char** argv) {
 	
 	// argv[1] será o path do ficheiro a transmitir
 	// argv[2] será a porta de série
+
+	
 
     if (argc < 3) {
 		printf("Usage:\tInvalid number of arguments\n");

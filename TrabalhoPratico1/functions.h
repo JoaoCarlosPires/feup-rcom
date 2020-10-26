@@ -40,10 +40,35 @@ void alarmHandler()
 }
 
 /**
-  * llopen function - starts the communication and proceed according to the type (send or receive)
+  * inicia a comunicação e procede de acordo com o tipo (send or receive)
   * @param porta COM1, COM2, ...
   * @param flag TRANSMITTER (1) or RECEIVER (0)
-  * @return identificador da ligação de dados ou valor negativo em caso de erro
+  * @return identificador da ligação de dados ou -1 em caso de erro
   */
 int llopen(char* porta, int flag);
+
+/**
+  * escreve através da ligação de dados o conteúdo do array (buffer) de tamanho lenght
+  * @param fd identificador da ligação de dados
+  * @param buffer array de caracteres a transmitir
+  * @param lenght comprimento do array de caracteres
+  * @return número de caracteres escritos ou -1 em caso de erro
+  */
+int llwrite(int fd, char * buffer, int length);
+
+/**
+  * lê através da ligação de dados um conjunto de caracteres (cujo tamanho retorna) e guarda-os em buffer
+  * @param fd identificador da ligação de dados
+  * @param buffer array de caracteres recebidos
+  * @return comprimento do array (número de caracteres lidos) ou -1 em caso de erro
+  */
+int llread(int fd, char * buffer);
+
+/**
+  * termina a ligação de dados
+  * @param fd identificador da ligação de dados
+  * @return 0 em caso de sucesso e -1 em caso de erro
+  */
+int llclose(int fd);
+
 void stateMachine(int *curr_state, unsigned char *input);

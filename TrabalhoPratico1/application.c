@@ -10,9 +10,9 @@
 #include <string.h>
 #include <signal.h>
 
+#include "functions.h"
+
 char * buffer;
-
-
 
 /** 
  * processFile - prepara o array de caracteres que será enviado do emissor para o receptor, colocando-o na variável global *buffer*
@@ -20,63 +20,87 @@ char * buffer;
  * @return retorna o tamanho do array de caracteres, tamanho este que será passado como argumento à função llwrite() 
 */
 int processFile(char* filePath) {
-	return 0;
+
+	int c = 1;
+	int n = 1; //?
+
+	FILE *fl = fopen(filePath, "r");  
+    fseek(fl, 0, SEEK_END);  
+    long len = ftell(fl);  
+    char * data = malloc(len);  
+    fseek(fl, 0, SEEK_SET);  
+    fread(data, 1, len, fl);  
+    fclose(fl); 
+
+	int l2 = len / 256;
+	int l1 = len % 256;
+
+	char control[4] = {c, n, l2, l1};
+
+	int total_size = len + 4*sizeof(int);
+
+	buffer = malloc(total_size);
+
+	memcpy(buffer, control, 4*sizeof(int));
+	memcpy(buffer + 4, data, len);
+
+	return total_size;
 }
 
 int main(int argc, char** argv) {
 	
-	// argv[1] será o path do ficheiro a transmitir
-	// argv[2] será a porta de série
+	char * porta = NULL;
+	char * imagem = NULL;
+	int fd, lenght;
 
-	
-
-    if (argc < 3) {
+	// Se argc = 2 -> nome do programa e porta de série (receptor)
+	// Se argc = 3 -> nome do programa, porta de série e path da imagem (emissor)
+    if (argc < 2 || argc > 3) {
 		printf("Usage:\tInvalid number of arguments\n");
       	exit(1);
 	}
 
-	if ( (strcmp("/dev/ttyS0", argv[2])!=0) && 
-  	     (strcmp("/dev/ttyS1", argv[2])!=0) ) {
-		printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
-		exit(1);
+	// Com o uso deste ciclo, permite-se que os argumentos sejam passados
+	// sem nenhuma ordem em específico
+	for (int i = 1; i < argc ; i++) {
+		if ((strcmp("/dev/ttyS0", argv[i])==0) || (strcmp("/dev/ttyS1", argv[i])==0))
+			porta = argv[i];
+		else {
+			int result = access(argv[i], F_OK);
+			if (result == 0) {
+				imagem = argv[i];
+			} else {
+				printf("Usage:\tInvalid arguments\n");
+				exit(1);
+			}
+		}
 	}
 
-	if (argv[1]==0) {
-      printf("Usage:\tFile to transmit is not defined\n");
-      exit(1);
-    }
+	if (imagem == NULL) {
+		// processamento da imagem
+		lenght = processFile(imagem); 
+		if (lenght <= 0) {
+			printf("Error in image processing\n");
+			exit(1);
+		}
 
-	// abertura da comunicação no lado do trasmissor
-	// int fd1 = llopen(argv[2], 1);
+		// abertura da comunicação no lado do receptor
+		fd = llopen(porta, RECEIVER);
+		
+		// leitura dos pacotes de dados recebidos
+		llread(fd, buffer);
 
-	// abertura da comunicação no lado do receptor
-	// int fd2 = llopen(argv[2], 0);
+		// enviar confirmação
+	} else { // abertura da comunicação no lado do trasmissor
+		fd = llopen(porta, TRANSMITTER);
+		
+		// escrita através do transmissor dos pacotes de dados
+		llwrite(fd, buffer, lenght);
 
-	/*
-	if (fd1 != fd2) {
-		printf("Erro no estabelecimento de ligação");
-		exit(0);
+		// receber confirmação
 	}
 
-	int fd = fd1;
-	*/
-
-	// processamento da imagem
-	int lenght = processFile(argv[1]); 
-	if (lenght == -1) {
-		printf("Error in image processing\n");
-		exit(1);
-	}
-
-	// escrita através do transmissor dos pacotes de dados
-	// llwrite(fd, buffer, lenght)
-
-	// leitura dos pacotes de dados recebidos
-	// llread(fd, buffer)
-
-	// confirmação
-
-	// llclose(fd);
+	llclose(fd);
 	
 	return 0;
 }

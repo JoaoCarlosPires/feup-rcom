@@ -96,6 +96,18 @@ int llopen(char *porta, int flag)
 	return fd;
 }
 
+int llwrite(int fd, char * buffer, int length) {
+	return 0;
+}
+
+int llread(int fd, char * buffer) {
+	return 0;
+}
+
+int llclose(int fd) {
+	return 0;
+}
+
 void stateMachine(int *curr_state, unsigned char *input)
 {
 

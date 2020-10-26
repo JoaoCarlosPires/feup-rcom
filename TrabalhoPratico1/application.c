@@ -77,13 +77,6 @@ int main(int argc, char** argv) {
 	}
 
 	if (imagem == NULL) {
-		// processamento da imagem
-		lenght = processFile(imagem); 
-		if (lenght <= 0) {
-			printf("Error in image processing\n");
-			exit(1);
-		}
-
 		// abertura da comunicação no lado do receptor
 		fd = llopen(porta, RECEIVER);
 		
@@ -91,7 +84,15 @@ int main(int argc, char** argv) {
 		llread(fd, buffer);
 
 		// enviar confirmação
-	} else { // abertura da comunicação no lado do trasmissor
+	} else { 
+		// processamento da imagem
+		lenght = processFile(imagem); 
+		if (lenght <= 0) {
+			printf("Error in image processing\n");
+			exit(1);
+		}
+
+		// abertura da comunicação no lado do trasmissor
 		fd = llopen(porta, TRANSMITTER);
 		
 		// escrita através do transmissor dos pacotes de dados

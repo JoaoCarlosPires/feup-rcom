@@ -1,7 +1,11 @@
 #include "functions.h"
 
-int llopen(char *porta, int flag)
-{
+void alarmHandler() {
+    allarms_called++;
+    alarm_active = TRUE;
+}
+
+int llopen(char *porta, int flag) {
 
 	(void)signal(SIGALRM, alarmHandler);
 
@@ -105,68 +109,54 @@ int llread(int fd, char * buffer) {
 }
 
 int llclose(int fd) {
-	return 0;
+	sleep(1);
+
+    tcsetattr(fd,TCSANOW,&oldtio);
+    close(fd);
+    return 0;
 }
 
-void stateMachine(int *curr_state, unsigned char *input)
-{
+void stateMachine(int *curr_state, unsigned char *input) {
 
-    switch (*curr_state)
-    {
+    switch (*curr_state) {
 
     case START:
 
         if (*input == TRAMA_SET[0])
-        {
             *curr_state = FLAG_RCV;
-        }
         break;
 
     case FLAG_RCV:
 
         if (*input == TRAMA_SET[1])
-        {
             *curr_state = A_RCV;
-        }
         else
-        {
             *curr_state = START;
-        }
         break;
 
     case A_RCV:
+	
         if (*input == TRAMA_SET[2])
-        {
             *curr_state = C_RCV;
-        }
         else
-        {
             *curr_state = START;
-        }
         break;
 
     case C_RCV:
 
         if (*input == TRAMA_SET[3])
-        {
             *curr_state = BCC_RCV;
-        }
         else
-        {
             *curr_state = START;
-        }
-
         break;
 
     case BCC_RCV:
 
-        if (*input == TRAMA_SET[0])
-        {
+        if (*input == TRAMA_SET[0]) {
             //STOP = TRUE;
             alarm(0);
             UA_RCV = 1;
         }
-
         break;
     }
 }

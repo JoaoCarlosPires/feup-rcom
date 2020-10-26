@@ -1,3 +1,8 @@
+#ifndef FUNCTIONS_H
+#define FUNCTIONS_H
+
+#pragma once
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,17 +32,11 @@
 
 #define TIMEOUT 3
 
-int allarms_called = 0;
+int allarms_called;
 unsigned char TRAMA_SET[4];
 struct termios oldtio, newtio;
-int UA_RCV = 0;
-int alarm_active = FALSE;
-
-void alarmHandler()
-{
-    allarms_called++;
-    alarm_active = TRUE;
-}
+int UA_RCV;
+int alarm_active;
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)
@@ -72,3 +71,5 @@ int llread(int fd, char * buffer);
 int llclose(int fd);
 
 void stateMachine(int *curr_state, unsigned char *input);
+
+#endif //FUNCTIONS_H

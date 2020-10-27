@@ -5,6 +5,28 @@ void alarmHandler() {
     alarm_active = TRUE;
 }
 
+unsigned char bcc_cal(char * buffer) {
+	unsigned char bcc = 0;
+
+	int len = sizeof(buffer);
+
+	for (int i = 0; i < len; i++) {
+		bcc ^= buffer[i]; 
+
+	}
+
+	if (bcc == 01111110) {
+		bcc = 0x7d;
+		bcc += 0x5e;
+	}
+	else if (bcc == 01111101) {
+		bcc = 0x7d;
+		bcc += 0x5d;
+	}
+
+	return bcc;
+}
+
 int llopen(char *porta, int flag) {
 
 	(void)signal(SIGALRM, alarmHandler);
@@ -101,17 +123,101 @@ int llopen(char *porta, int flag) {
 }
 
 int llwrite(int fd, char * buffer, int length) {
-	return 0;
+
+	unsigned char * TRAMA_DATA = malloc(sizeof(buffer)+7);
+
+	TRAMA_DATA[0] = FLAG;
+	TRAMA_DATA[1] = A;
+	TRAMA_DATA[2] = C;
+	TRAMA_DATA[3] = A ^ C;
+	
+	for (int i = 0; i < length; i++) {
+		TRAMA_DATA[4+i] = buffer[i];
+	}
+	
+	TRAMA_DATA[4+length] = bcc_cal(buffer);
+	if (sizeof(TRAMA_DATA[4+length]) == 0x02) 
+		TRAMA_DATA[4+length+2] = TRAMA_DATA[0];
+	else
+		TRAMA_DATA[4+length+1] = TRAMA_DATA[0];
+
+	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
+
+	return sizeof(TRAMA_DATA);
 }
 
 int llread(int fd, char * buffer) {
+
+	int CURR_STATE = START;
+	int i = 0;
+	int len = sizeof(buffer);
+
+	int picture = creat("picture.gif", 0666);
+
+	do {
+		
+		read(fd, buffer[i], 1);
+
+		switch (CURR_STATE) {
+
+    		case START:
+
+        		if (buffer[i] == FLAG)
+            		CURR_STATE = FLAG_RCV;
+        		break;
+
+    		case FLAG_RCV:
+
+        		if (buffer[i] == A)
+            		CURR_STATE = A_RCV;
+        		else
+            		CURR_STATE = START;
+        		break;
+
+    		case A_RCV:
+	
+        	if (buffer[i] == C)
+            	CURR_STATE = C_RCV;
+        	else
+            	CURR_STATE = START;
+        	break;
+
+    		case C_RCV:
+
+        	if (buffer[i] == A ^ C)
+            	CURR_STATE = BCC_RCV;
+        	else
+            	CURR_STATE = START;
+        	break;
+
+    		case BCC_RCV:
+
+        	if (buffer[i] == FLAG) {
+            	alarm(0);
+            	UA_RCV = 1;
+        	} else {
+				write(picture, buffer[i], 1);
+			}
+        	break;
+
+			default:
+				break;
+    	}
+
+		i++;
+	} while(i != len);
+
 	return 0;
 }
 
 int llclose(int fd) {
 	sleep(1);
 
-    tcsetattr(fd,TCSANOW,&oldtio);
+    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+      perror("tcsetattr");
+      exit(-1);
+    }
+	
     close(fd);
     return 0;
 }

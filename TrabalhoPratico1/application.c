@@ -107,6 +107,8 @@ int main(int argc, char** argv) {
 		// leitura dos pacotes de dados recebidos
 		llread(fd, buffer);
 
+		llclose(fd,RECEIVER);
+
 		// enviar confirmação
 	} else { 
 		// processamento da imagem
@@ -122,10 +124,12 @@ int main(int argc, char** argv) {
 		// escrita através do transmissor dos pacotes de dados
 		llwrite(fd, buffer, lenght);
 
+		llclose(fd, TRANSMITTER);
+
 		// receber confirmação
 	}
 
-	llclose(fd);
+	
 	
 	return 0;
 }

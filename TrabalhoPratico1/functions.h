@@ -29,15 +29,24 @@
 #define A_RCV 2
 #define C_RCV 3
 #define BCC_RCV 4
+#define FINISH 5
+
+
+
 
 #define FLAG 0b01111110
-#define A 0b00000011
-#define C 0b00000011
+#define A1 0b00000011
+#define A2 0b00000001
+#define C_SET 0b00000011
+#define C_UA 0b00000111
+#define C_DISC 0b00001011
 
 #define TIMEOUT 3
 
 int allarms_called;
 unsigned char TRAMA_SET[5];
+unsigned char TRAMA_UA[5];
+unsigned char TRAMA_DISC[5];
 struct termios oldtio, newtio;
 int UA_RCV;
 int alarm_active;
@@ -75,8 +84,8 @@ int llread(int fd, char * buffer);
   * @param fd identificador da ligação de dados
   * @return 0 em caso de sucesso e -1 em caso de erro
   */
-int llclose(int fd);
+int llclose(int fd, int flag);
 
-void stateMachine(int *curr_state, unsigned char *input);
+void stateMachine(int *curr_state, unsigned char *input, int C, int A);
 
 #endif //FUNCTIONS_H

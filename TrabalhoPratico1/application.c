@@ -36,12 +36,12 @@ int processFile(char* filePath) {
 	int i = 0, aux_i = 0;
 
 	while (aux_i != len) {
-		if (data[aux_i] == 01111110) {
+		if (data[aux_i] == 0b01111110) {
 			aux[i] = 0x7d;
 			aux[i+1] = 0x5e;
 			i++;
 		}
-		else if (data[aux_i] == 01111101) {
+		else if (data[aux_i] == 0b01111101) {
 			aux[i] = 0x7d;
 			aux[i+1] = 0x5d;
 			i++;	

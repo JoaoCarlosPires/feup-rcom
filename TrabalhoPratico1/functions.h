@@ -30,17 +30,18 @@
 #define C_RCV 3
 #define BCC_RCV 4
 
-#define FLAG (unsigned char)01111110
-#define A 00000011
-#define C 00000011
+#define FLAG 0b01111110
+#define A 0b00000011
+#define C 0b00000011
 
 #define TIMEOUT 3
 
 int allarms_called;
-unsigned char TRAMA_SET[4];
+unsigned char TRAMA_SET[5];
 struct termios oldtio, newtio;
 int UA_RCV;
 int alarm_active;
+volatile int STOP;
 
 unsigned char bcc_cal(char * buffer);
 

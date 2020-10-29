@@ -15,11 +15,11 @@ unsigned char bcc_cal(char * buffer) {
 
 	}
 
-	if (bcc == 01111110) {
+	if (bcc == 0b01111110) {
 		bcc = 0x7d;
 		bcc += 0x5e;
 	}
-	else if (bcc == 01111101) {
+	else if (bcc == 0b01111101) {
 		bcc = 0x7d;
 		bcc += 0x5d;
 	}
@@ -39,9 +39,16 @@ int llopen(char *porta, int flag) {
 		perror(porta);
 		exit(-1);
 	}
+	
+	TRAMA_SET[0] = FLAG;
+	TRAMA_SET[1] = A;
+	TRAMA_SET[2] = C;
+	TRAMA_SET[3] = A ^ C;
+	TRAMA_SET[4] = FLAG;
 
 	if (flag == TRANSMITTER)
 	{
+		
 		if (tcgetattr(fd, &oldtio) == -1)
 		{ /* save current port settings */
 			perror("tcgetattr");
@@ -73,11 +80,6 @@ int llopen(char *porta, int flag) {
 		}
 
 		printf("New termios structure set\n");
-
-		TRAMA_SET[0] = (unsigned char)01111110;
-		TRAMA_SET[1] = 00000011;
-		TRAMA_SET[2] = 00000011;
-		TRAMA_SET[3] = TRAMA_SET[1] ^ TRAMA_SET[2];
 
 		unsigned char buf;
 
@@ -116,7 +118,50 @@ int llopen(char *porta, int flag) {
 	}
 	else if (flag == RECEIVER)
 	{
-		//call noncanonical code
+		if (tcgetattr(fd, &oldtio) == -1)
+		{ /* save current port settings */
+			perror("tcgetattr");
+			exit(-1);
+		}
+
+		bzero(&newtio, sizeof(newtio));
+		newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+		newtio.c_iflag = IGNPAR;
+		newtio.c_oflag = 0;
+
+		/* set input mode (non-canonical, no echo,...) */
+		newtio.c_lflag = 0;
+
+		newtio.c_cc[VTIME] = 10; /* inter-character timer unused */
+		newtio.c_cc[VMIN] = 1;	 /* blocking read until 1 chars received */
+
+		/* 
+    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
+    leitura do(s) pr�ximo(s) caracter(es)
+  */
+
+		tcflush(fd, TCIOFLUSH);
+
+		if (tcsetattr(fd, TCSANOW, &newtio) == -1)
+		{
+			perror("tcsetattr");
+			exit(-1);
+		}
+
+		printf("New termios structure set\n");
+
+		unsigned char buf;
+		STOP = FALSE;
+		int curr_state = START;
+
+		while(STOP == FALSE){ //receive control message
+
+			read(fd,&buf,1);
+			stateMachine(&curr_state,&buf);
+		}
+
+		write(fd,TRAMA_SET,sizeof(TRAMA_SET)); //send control message
+
 	}
 
 	return fd;
@@ -130,6 +175,7 @@ int llwrite(int fd, char * buffer, int length) {
 	TRAMA_DATA[1] = A;
 	TRAMA_DATA[2] = C;
 	TRAMA_DATA[3] = A ^ C;
+	
 	
 	for (int i = 0; i < length; i++) {
 		TRAMA_DATA[4+i] = buffer[i];
@@ -156,7 +202,7 @@ int llread(int fd, char * buffer) {
 
 	do {
 		
-		read(fd, buffer[i], 1);
+		read(fd, &buffer[i], 1);
 
 		switch (CURR_STATE) {
 
@@ -184,7 +230,7 @@ int llread(int fd, char * buffer) {
 
     		case C_RCV:
 
-        	if (buffer[i] == A ^ C)
+        	if (buffer[i] == (A ^ C))
             	CURR_STATE = BCC_RCV;
         	else
             	CURR_STATE = START;
@@ -196,7 +242,7 @@ int llread(int fd, char * buffer) {
             	alarm(0);
             	UA_RCV = 1;
         	} else {
-				write(picture, buffer[i], 1);
+				write(picture, &buffer[i], 1);
 			}
         	break;
 
@@ -258,8 +304,8 @@ void stateMachine(int *curr_state, unsigned char *input) {
 
     case BCC_RCV:
 
-        if (*input == TRAMA_SET[0]) {
-            //STOP = TRUE;
+        if (*input == TRAMA_SET[4]) {
+            STOP = TRUE;
             alarm(0);
             UA_RCV = 1;
         }

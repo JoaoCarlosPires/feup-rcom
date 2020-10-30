@@ -30,9 +30,8 @@
 #define C_RCV 3
 #define BCC_RCV 4
 #define FINISH 5
-
-
-
+#define DATA 6
+#define BCC2_RCV 7
 
 #define FLAG 0b01111110
 #define A1 0b00000011
@@ -50,9 +49,9 @@ unsigned char TRAMA_DISC[5];
 struct termios oldtio, newtio;
 int UA_RCV;
 int alarm_active;
-volatile int STOP;
+int STOP;
 
-unsigned char bcc_cal(char * buffer);
+char * bcc_cal(char * buffer);
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)

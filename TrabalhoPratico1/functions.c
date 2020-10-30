@@ -6,9 +6,9 @@ void alarmHandler()
 	alarm_active = TRUE;
 }
 
-unsigned char bcc_cal(char *buffer)
+char * bcc_cal(char *buffer)
 {
-	unsigned char bcc = 0;
+	unsigned char bcc;
 
 	int len = sizeof(buffer);
 
@@ -17,18 +17,24 @@ unsigned char bcc_cal(char *buffer)
 		bcc ^= buffer[i];
 	}
 
+	char stuff_bcc[2];
+
 	if (bcc == 0b01111110)
 	{
-		bcc = 0x7d;
-		bcc += 0x5e;
+		stuff_bcc[0] = 0x7d;
+		stuff_bcc[1] = 0x5e;
 	}
 	else if (bcc == 0b01111101)
 	{
-		bcc = 0x7d;
-		bcc += 0x5d;
+		stuff_bcc[0] = 0x7d;
+		stuff_bcc[1] = 0x5d;
+	} else {
+		stuff_bcc[0] = bcc;
 	}
 
-	return bcc;
+	char * aux = stuff_bcc;
+
+	return aux;
 }
 
 int llopen(char *porta, int flag)
@@ -84,11 +90,9 @@ int llopen(char *porta, int flag)
 			exit(-1);
 		}
 
-		printf("New termios structure set\n");
+		printf("New termios structure\n");
 
 		unsigned char buf;
-
-		//write(fd, TRAMA_SET, sizeof(TRAMA_SET));
 
 		/* 
     O ciclo FOR e as instru��es seguintes devem ser alterados de modo a respeitar 
@@ -159,8 +163,8 @@ int llopen(char *porta, int flag)
 			exit(-1);
 		}
 
-		printf("New termios structure set\n");
-
+		printf("New termios structure\n");
+		
 		unsigned char buf;
 		STOP = FALSE;
 		int curr_state = START;
@@ -183,24 +187,30 @@ int llwrite(int fd, char *buffer, int length)
 
 	unsigned char *TRAMA_DATA = malloc(sizeof(buffer) + 7);
 
-	int C = C_SET; // provisorio para nao haver erros, deve ser corrigido
+	//int C = C_SET; // provisorio para nao haver erros, deve ser corrigido
 
 	TRAMA_DATA[0] = FLAG;
 	TRAMA_DATA[1] = A1;
-	TRAMA_DATA[2] = C;
-	TRAMA_DATA[3] = A1 ^ C;
+	TRAMA_DATA[2] = C_SET;
+	TRAMA_DATA[3] = A1 ^ C_SET;
 
 	for (int i = 0; i < length; i++)
 	{
 		TRAMA_DATA[4 + i] = buffer[i];
 	}
 
-	TRAMA_DATA[4 + length] = bcc_cal(buffer);
-	if (sizeof(TRAMA_DATA[4 + length]) == 0x02)
-		TRAMA_DATA[4 + length + 2] = TRAMA_DATA[0];
-	else
-		TRAMA_DATA[4 + length + 1] = TRAMA_DATA[0];
-
+	char * aux;
+	aux = malloc(2*sizeof(char));
+	aux = bcc_cal(buffer);
+	if (sizeof(aux) == 2) {
+		TRAMA_DATA[4 + length] = aux[0];
+		TRAMA_DATA[5 + length] = aux[1];
+		TRAMA_DATA[6 + length] = TRAMA_DATA[0];
+	} else {
+		TRAMA_DATA[4 + length] = aux[0];
+		TRAMA_DATA[5 + length] = TRAMA_DATA[0];
+	}
+		
 	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
 
 	return sizeof(TRAMA_DATA);
@@ -211,29 +221,29 @@ int llread(int fd, char *buffer)
 
 	int CURR_STATE = START;
 	int i = 0;
-	int len = sizeof(buffer);
-
+	int flag = 0;
+	int counter = 0;
 	int picture = creat("picture.gif", 0666);
+	char ul;
+	buffer = malloc(sizeof(char));
 
-	int C = C_SET; // provisorio para nao haver erros, deve ser corrigido
-
-	do
-	{
-
-		read(fd, &buffer[i], 1);
+	while(flag == 0) {
+		read(fd, &ul, 1);
+		
+		counter++;
 
 		switch (CURR_STATE)
 		{
 
 		case START:
 
-			if (buffer[i] == FLAG)
+			if (ul == FLAG)
 				CURR_STATE = FLAG_RCV;
 			break;
 
 		case FLAG_RCV:
 
-			if (buffer[i] == A1)
+			if (ul == A1)
 				CURR_STATE = A_RCV;
 			else
 				CURR_STATE = START;
@@ -241,7 +251,7 @@ int llread(int fd, char *buffer)
 
 		case A_RCV:
 
-			if (buffer[i]) // atençao falta completa
+			if (ul == C_SET) 
 				CURR_STATE = C_RCV;
 			else
 				CURR_STATE = START;
@@ -249,39 +259,67 @@ int llread(int fd, char *buffer)
 
 		case C_RCV:
 
-			if (buffer[i] == (A1 ^ C))
-				CURR_STATE = BCC_RCV;
+			if (ul == (A1 ^ C_SET))
+				CURR_STATE = DATA;
 			else
 				CURR_STATE = START;
 			break;
 
-		case BCC_RCV:
+		case DATA:
+				write(STDOUT_FILENO, "teste", 6);
+				if (ul == FLAG) {
+					flag = 1;
+					write(STDOUT_FILENO, "test1", 6);
+				} else {
+					write(picture, &buffer[i], 1);
+					buffer = realloc(buffer, sizeof(buffer)+1);
+					i++;
+				}
+				/*buffer[i] = ul;
+				aux2 = bcc_cal(buffer);
+				if (sizeof(bcc_cal(buffer)) == 1) {
+					if (ul == aux2[0]) {
+						CURR_STATE = BCC2_RCV;
+					}
+				} else {
+					if (aux2[0] == ul) {
+						read(fd, &ul, 1);
+						if (aux2[1] == ul) {
+							counter++;
+							CURR_STATE = BCC2_RCV;
+						}
+					} else {
+						write(picture, &buffer[i], 1);
+						buffer = realloc(buffer, sizeof(buffer)+1);
+						i++;
+					}
+				}
+				*/
 
-			if (buffer[i] == FLAG)
-			{
-				alarm(0);
-				UA_RCV = 1;
-			}
-			else
-			{
-				write(picture, &buffer[i], 1);
-			}
 			break;
 
+		case BCC2_RCV:
+			write(STDOUT_FILENO, "teste", 6);
+			if (ul == FLAG) {
+				flag = 1;
+				write(STDOUT_FILENO, "test1", 6);
+			}
+			break;
+		
 		default:
 			break;
 		}
 
-		i++;
-	} while (i != len);
+	}
 
-	return 0;
+	return counter;
 }
 
 int llclose(int fd, int flag)
 {
-	sleep(1);
 
+	//sleep(1);
+/*
 	if (flag == TRANSMITTER)
 	{
 		TRAMA_DISC[0] = FLAG;
@@ -299,16 +337,17 @@ int llclose(int fd, int flag)
 		write(fd,TRAMA_DISC,sizeof(TRAMA_DISC));
 
 		int curr_state = START;
-		unsigned char buf;
+		unsigned char * buf;
 
 		while(curr_state != FINISH){
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,&buf,C_DISC,A2);
+			stateMachine(&curr_state,buf,C_DISC,A2);
 
 		}
 
+		
 		write(fd,TRAMA_UA,sizeof(TRAMA_UA));
 
 
@@ -323,13 +362,14 @@ int llclose(int fd, int flag)
 		TRAMA_DISC[4] = FLAG;
 
 		int curr_state = START;
-		unsigned char buf;
+		unsigned char * buf;
+
 
 		while(curr_state != FINISH){
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,&buf,C_DISC,A1);
+			stateMachine(&curr_state,buf,C_DISC,A1);
 
 		}
 
@@ -339,14 +379,14 @@ int llclose(int fd, int flag)
 
 		while(curr_state != FINISH){
 			
-			read(fd,&buf,1);
+			read(fd,buf,1);
 			
-			stateMachine(&curr_state,&buf,C_UA,A2);
+			stateMachine(&curr_state,buf,C_UA,A2);
 
 		}
 
 	}
-
+*/
 	if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
 	{
 		perror("tcsetattr");
@@ -404,4 +444,7 @@ void stateMachine(int *curr_state, unsigned char *input, int C, int A)
 		}
 		break;
 	}
+	//write(STDOUT_FILENO, &curr_state, 1);
+	//printf("%i", *curr_state);
+
 }

@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
 	// Com o uso deste ciclo, permite-se que os argumentos sejam passados
 	// sem nenhuma ordem em específico
 	for (int i = 1; i < argc ; i++) {
-		if ((strcmp("/dev/ttyS0", argv[i])==0) || (strcmp("/dev/ttyS1", argv[i])==0))
+		if ((strcmp("/dev/ttyS10", argv[i])==0) || (strcmp("/dev/ttyS11", argv[i])==0))
 			porta = argv[i];
 		else {
 			int result = access(argv[i], F_OK);
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 	if (imagem == NULL) {
 		// abertura da comunicação no lado do receptor
 		fd = llopen(porta, RECEIVER);
-		
+
 		// leitura dos pacotes de dados recebidos
 		llread(fd, buffer);
 
@@ -120,16 +120,15 @@ int main(int argc, char** argv) {
 
 		// abertura da comunicação no lado do trasmissor
 		fd = llopen(porta, TRANSMITTER);
-		
+
 		// escrita através do transmissor dos pacotes de dados
 		llwrite(fd, buffer, lenght);
 
 		llclose(fd, TRANSMITTER);
 
+		
 		// receber confirmação
 	}
 
-	
-	
 	return 0;
 }

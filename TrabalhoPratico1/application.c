@@ -12,7 +12,14 @@
 
 #include "functions.h"
 
-char * buffer;
+unsigned char * buffer;
+
+void alarmHandler()
+{
+	allarms_called++;
+	alarm_active = TRUE;
+	printf("Alarm Active\n");
+}
 
 /** 
  * processFile - prepara o array de caracteres que será enviado do emissor para o receptor, colocando-o na variável global *buffer*
@@ -24,7 +31,7 @@ int processFile(char* filePath) {
 	int c = 1;
 	int n = 0;
 
-	FILE *fl = fopen(filePath, "r");  
+	FILE *fl = fopen(filePath, "rb");  
     fseek(fl, 0, SEEK_END);  
     long len = ftell(fl);  
     char * data = malloc(len);  
@@ -68,7 +75,22 @@ int processFile(char* filePath) {
 	memcpy(buffer, control, 4*sizeof(int));
 	memcpy(buffer + 4, aux, len);
 
+	printf("This is the size of the image %i", total_size);
+
 	return total_size;
+}
+
+int createPicture(unsigned char * pictureBuffer,int size) {
+	FILE* picture; 
+    picture = fopen("picture.gif", "wb+"); 
+
+	
+	
+
+	fwrite(pictureBuffer, 1, size+1, picture);
+	fclose(picture);
+
+	return 0;
 }
 
 int main(int argc, char** argv) {
@@ -76,6 +98,8 @@ int main(int argc, char** argv) {
 	char * porta = NULL;
 	char * imagem = NULL;
 	int fd, lenght;
+
+	(void)signal(SIGALRM, alarmHandler);
 
 	// Se argc = 2 -> nome do programa e porta de série (receptor)
 	// Se argc = 3 -> nome do programa, porta de série e path da imagem (emissor)
@@ -105,9 +129,18 @@ int main(int argc, char** argv) {
 		fd = llopen(porta, RECEIVER);
 
 		// leitura dos pacotes de dados recebidos
-	//	llread(fd, buffer);
+		
+		unsigned char *mensagem;
+		
+		int a = llread(fd, mensagem);
 
 		llclose(fd,RECEIVER);
+
+		/*
+		if (createPicture(buffer,a) != 0) {
+			perror("Unable to create picture\n");
+			exit(-1);
+		}*/
 
 		// enviar confirmação
 	} else { 

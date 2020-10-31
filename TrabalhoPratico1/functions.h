@@ -39,6 +39,7 @@
 #define C_SET 0b00000011
 #define C_UA 0b00000111
 #define C_DISC 0b00001011
+#define C_RR 0b10000101
 
 #define TIMEOUT 3
 
@@ -51,7 +52,7 @@ int UA_RCV;
 int alarm_active;
 int STOP;
 
-unsigned char bcc_cal(char * buffer);
+unsigned char bcc_cal(unsigned char * buffer);
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)
@@ -68,7 +69,7 @@ int llopen(char* porta, int flag);
   * @param lenght comprimento do array de caracteres
   * @return número de caracteres escritos ou -1 em caso de erro
   */
-int llwrite(int fd, char * buffer, int length);
+int llwrite(int fd, unsigned char * buffer, int length);
 
 /**
   * lê através da ligação de dados um conjunto de caracteres (cujo tamanho retorna) e guarda-os em buffer
@@ -76,7 +77,7 @@ int llwrite(int fd, char * buffer, int length);
   * @param buffer array de caracteres recebidos
   * @return comprimento do array (número de caracteres lidos) ou -1 em caso de erro
   */
-int llread(int fd, char * buffer);
+int llread(int fd, unsigned char * mensagem);
 
 /**
   * termina a ligação de dados

@@ -1,10 +1,6 @@
 #include "functions.h"
 
-void alarmHandler()
-{
-	allarms_called++;
-	alarm_active = TRUE;
-}
+
 
 unsigned char bcc_cal(char *buffer)
 {
@@ -40,9 +36,6 @@ unsigned char bcc_cal(char *buffer)
 
 int llopen(char *porta, int flag)
 {
-
-	(void)signal(SIGALRM, alarmHandler);
-
 	int fd;
 
 	fd = open(porta, O_RDWR | O_NOCTTY);
@@ -103,7 +96,7 @@ int llopen(char *porta, int flag)
 
 		do
 		{
-			alarm_active = FALSE;
+			alarm_active = 0;
 			write(fd, TRAMA_SET, sizeof(TRAMA_SET));
 			write(STDOUT_FILENO,"Trama SET sent\n",15);
 			alarm(TIMEOUT);
@@ -111,7 +104,7 @@ int llopen(char *porta, int flag)
 			while (!UA_RCV && !alarm_active)
 			{
 				read(fd, &buf, 1);
-				stateMachine(&CURR_STATE, &buf, C_UA,A1);
+				CURR_STATE = stateMachine(CURR_STATE, &buf, C_UA,A1);
 			}
 
 		} while (!UA_RCV && allarms_called < 3);
@@ -124,7 +117,7 @@ int llopen(char *porta, int flag)
 		{
 			write(STDOUT_FILENO,"Trama UA received\n",18);
 			allarms_called = 0;
-			alarm_active = FALSE;
+			alarm_active = 0;
 			//return TRUE;
 		}
 	}
@@ -176,7 +169,7 @@ int llopen(char *porta, int flag)
 		{ //receive control message
 
 			read(fd, &buf, 1);
-			stateMachine(&curr_state, &buf, C_SET,A1);
+			curr_state = stateMachine(curr_state, &buf, C_SET,A1);
 		}
 
 		write(STDOUT_FILENO,"Trama SET received\n",19);
@@ -192,7 +185,6 @@ int llwrite(int fd, char *buffer, int length)
 
 	unsigned char *TRAMA_DATA = malloc(length + 7);
 
-	
 	TRAMA_DATA[0] = FLAG;
 	TRAMA_DATA[1] = A1;
 	TRAMA_DATA[2] = C_SET;
@@ -214,27 +206,51 @@ int llwrite(int fd, char *buffer, int length)
 		TRAMA_DATA[4 + length] = aux[0];
 		TRAMA_DATA[5 + length] = TRAMA_DATA[0];
 	}*/
-		
-	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
 
+	int CURR_STATE = START;
+	unsigned char aux2;
 	
-	write(STDOUT_FILENO,"\nTrama DATA sent\n",17);
-	
-	
+	allarms_called = 0;
+
+	do {
+			alarm_active = 0;
+			write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
+			write(STDOUT_FILENO,"Trama DATA sent\n",17);
+			alarm(TIMEOUT);
+			
+			while ((CURR_STATE!=FINISH) && (!alarm_active))
+			{
+				read(fd, &aux2, 1);
+				write(STDOUT_FILENO, "Stuck here2", 11);
+				CURR_STATE = stateMachine(CURR_STATE, &aux2, C_RR, A1);
+			}
+
+			write(STDOUT_FILENO, "After while\n", 13);
+
+	} while (alarm_active && (allarms_called < 3));
+
+	write(STDOUT_FILENO, "Trama rr received\n", 19);
 
 	return sizeof(TRAMA_DATA);
 }
 
-int llread(int fd, char *buffer)
+char * llread(int fd, char *buffer)
 {
 
 	int CURR_STATE = START;
 	int i = 0;
 	int flag = 0;
 	int counter = 0;
-	int picture = creat("picture.gif", 0666);
 	char ul;
-	buffer = malloc(sizeof(char));
+	buffer = malloc(1);
+
+	unsigned char TRAMA_RR[5];
+
+	TRAMA_RR[0] = FLAG;
+	TRAMA_RR[1] = A1;
+	TRAMA_RR[2] = C_RR;
+	TRAMA_RR[3] = A1 ^ C_RR;
+	TRAMA_RR[4] = FLAG;
 
 	while(flag == 0) {
 		read(fd, &ul, 1);
@@ -275,43 +291,14 @@ int llread(int fd, char *buffer)
 			break;
 
 		case DATA:
-				write(STDOUT_FILENO, "teste", 6);
-				if (ul == FLAG) {
-					flag = 1;
-					write(STDOUT_FILENO, "test1", 6);
-				} else {
-					write(picture, &buffer[i], 1);
-					buffer = realloc(buffer, sizeof(buffer)+1);
-					i++;
-				}
-				/*buffer[i] = ul;
-				aux2 = bcc_cal(buffer);
-				if (sizeof(bcc_cal(buffer)) == 1) {
-					if (ul == aux2[0]) {
-						CURR_STATE = BCC2_RCV;
-					}
-				} else {
-					if (aux2[0] == ul) {
-						read(fd, &ul, 1);
-						if (aux2[1] == ul) {
-							counter++;
-							CURR_STATE = BCC2_RCV;
-						}
-					} else {
-						write(picture, &buffer[i], 1);
-						buffer = realloc(buffer, sizeof(buffer)+1);
-						i++;
-					}
-				}
-				*/
-
-			break;
-
-		case BCC2_RCV:
-			write(STDOUT_FILENO, "teste", 6);
-			if (ul == FLAG) {
-				flag = 1;
-				write(STDOUT_FILENO, "test1", 6);
+     
+			if(ul == FLAG){
+               flag = 1;
+            }
+			else {
+				buffer[i] = ul;
+				i++;
+				buffer = realloc(buffer,i+1);
 			}
 			break;
 		
@@ -321,7 +308,9 @@ int llread(int fd, char *buffer)
 
 	}
 
-	return counter;
+	write(fd, TRAMA_RR, 5);
+
+	return buffer;
 }
 
 int llclose(int fd, int flag)
@@ -331,6 +320,7 @@ int llclose(int fd, int flag)
 
 	if (flag == TRANSMITTER)
 	{
+
 		TRAMA_DISC[0] = FLAG;
 		TRAMA_DISC[1] = A1;
 		TRAMA_DISC[2] = C_DISC;
@@ -347,7 +337,6 @@ int llclose(int fd, int flag)
 
 		write(STDOUT_FILENO,"Trama DISC sent\n",16);
 
-
 		int curr_state = START;
 		unsigned char buf;
 
@@ -355,7 +344,7 @@ int llclose(int fd, int flag)
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,&buf,C_DISC,A2);
+			curr_state = stateMachine(curr_state,&buf,C_DISC,A2);
 
 		}
 
@@ -379,12 +368,11 @@ int llclose(int fd, int flag)
 		int curr_state = START;
 		unsigned char buf;
 
-
 		while(curr_state != FINISH){
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,&buf,C_DISC,A1);
+			curr_state = stateMachine(curr_state,&buf,C_DISC,A1);
 
 		}
 
@@ -400,7 +388,7 @@ int llclose(int fd, int flag)
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,&buf,C_UA,A2);
+			curr_state = stateMachine(curr_state,&buf,C_UA,A2);
 
 		}
 
@@ -418,40 +406,40 @@ int llclose(int fd, int flag)
 	return 0;
 }
 
-void stateMachine(int *curr_state, unsigned char *input, int C, int A)
+int stateMachine(int curr_state, unsigned char *input, int C, int A)
 {
 
-	switch (*curr_state)
+	switch (curr_state)
 	{
 
 	case START:
 
 		if (*input == FLAG)
-			*curr_state = FLAG_RCV;
+			curr_state = FLAG_RCV;
 		break;
 
 	case FLAG_RCV:
 
 		if (*input == A)
-			*curr_state = A_RCV;
+			curr_state = A_RCV;
 		else
-			*curr_state = START;
+			curr_state = START;
 		break;
 
 	case A_RCV:
 
 		if (*input == C)
-			*curr_state = C_RCV;
+			curr_state = C_RCV;
 		else
-			*curr_state = START;
+			curr_state = START;
 		break;
 
 	case C_RCV:
 
 		if (*input == (A ^ C))
-			*curr_state = BCC_RCV;
+			curr_state = BCC_RCV;
 		else
-			*curr_state = START;
+			curr_state = START;
 		break;
 
 	case BCC_RCV:
@@ -461,11 +449,16 @@ void stateMachine(int *curr_state, unsigned char *input, int C, int A)
 			STOP = TRUE;
 			alarm(0);
 			UA_RCV = 1;
-			*curr_state = FINISH;
+			curr_state = FINISH;
 		}
 		break;
+	
+
+	default:
+		break;
+	
 	}
-	//write(STDOUT_FILENO, &curr_state, 1);
-	//printf("%i", *curr_state);
+	
+	return curr_state;
 
 }

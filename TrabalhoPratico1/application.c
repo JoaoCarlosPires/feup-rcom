@@ -71,7 +71,27 @@ int processFile(char* filePath) {
 	return total_size;
 }
 
+int createPicture(char * pictureBuffer) {
+	FILE* picture; 
+    picture = fopen("picture.gif", "wb+"); 
+	fwrite(pictureBuffer, 1, sizeof(pictureBuffer)*sizeof(char), picture);
+	fclose(picture);
+
+	return 0;
+}
+
+void alarmHandler()
+{
+	allarms_called++;
+	alarm_active = 1;
+	//printf("%i\n", allarms_called);
+}
+
 int main(int argc, char** argv) {
+
+	alarm_active = 0;
+
+	(void)signal(SIGALRM, alarmHandler);
 	
 	char * porta = NULL;
 	char * imagem = NULL;
@@ -105,7 +125,13 @@ int main(int argc, char** argv) {
 		fd = llopen(porta, RECEIVER);
 
 		// leitura dos pacotes de dados recebidos
-	//	llread(fd, buffer);
+		char * picture;
+		picture = llread(fd, buffer);
+		
+		if (createPicture(picture) != 0) {
+			perror("Unable to create picture\n");
+			exit(-1);
+		}
 
 		llclose(fd,RECEIVER);
 
@@ -124,9 +150,10 @@ int main(int argc, char** argv) {
 		// escrita através do transmissor dos pacotes de dados
 		llwrite(fd, buffer, lenght);
 
+		
+
 		llclose(fd, TRANSMITTER);
 
-		
 		// receber confirmação
 	}
 

@@ -51,7 +51,7 @@ int UA_RCV;
 int alarm_active;
 int STOP;
 
-char * bcc_cal(char * buffer);
+unsigned char bcc_cal(char * buffer);
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)

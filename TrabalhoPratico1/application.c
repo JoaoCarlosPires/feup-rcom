@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
 		fd = llopen(porta, RECEIVER);
 
 		// leitura dos pacotes de dados recebidos
-		llread(fd, buffer);
+	//	llread(fd, buffer);
 
 		llclose(fd,RECEIVER);
 
@@ -129,6 +129,8 @@ int main(int argc, char** argv) {
 		
 		// receber confirmação
 	}
+
+	//close(fd);
 
 	return 0;
 }

@@ -6,7 +6,7 @@ void alarmHandler()
 	alarm_active = TRUE;
 }
 
-char * bcc_cal(char *buffer)
+unsigned char bcc_cal(char *buffer)
 {
 	unsigned char bcc;
 
@@ -17,6 +17,7 @@ char * bcc_cal(char *buffer)
 		bcc ^= buffer[i];
 	}
 
+	/*
 	char stuff_bcc[2];
 
 	if (bcc == 0b01111110)
@@ -30,11 +31,11 @@ char * bcc_cal(char *buffer)
 		stuff_bcc[1] = 0x5d;
 	} else {
 		stuff_bcc[0] = bcc;
-	}
+	}*/
 
-	char * aux = stuff_bcc;
+	//char * aux = stuff_bcc;
 
-	return aux;
+	return bcc;
 }
 
 int llopen(char *porta, int flag)
@@ -104,6 +105,7 @@ int llopen(char *porta, int flag)
 		{
 			alarm_active = FALSE;
 			write(fd, TRAMA_SET, sizeof(TRAMA_SET));
+			write(STDOUT_FILENO,"Trama SET sent\n",15);
 			alarm(TIMEOUT);
 
 			while (!UA_RCV && !alarm_active)
@@ -120,6 +122,7 @@ int llopen(char *porta, int flag)
 		}
 		else
 		{
+			write(STDOUT_FILENO,"Trama UA received\n",18);
 			allarms_called = 0;
 			alarm_active = FALSE;
 			//return TRUE;
@@ -176,32 +179,33 @@ int llopen(char *porta, int flag)
 			stateMachine(&curr_state, &buf, C_SET,A1);
 		}
 
+		write(STDOUT_FILENO,"Trama SET received\n",19);
 		write(fd, TRAMA_UA, sizeof(TRAMA_UA)); //send control UA message
+		write(STDOUT_FILENO,"Trama UA sent\n",14);
 	}
 
 	return fd;
 }
 
 int llwrite(int fd, char *buffer, int length)
-{
+{	
 
-	unsigned char *TRAMA_DATA = malloc(sizeof(buffer) + 7);
+	unsigned char *TRAMA_DATA = malloc(length + 7);
 
-	//int C = C_SET; // provisorio para nao haver erros, deve ser corrigido
-
+	
 	TRAMA_DATA[0] = FLAG;
 	TRAMA_DATA[1] = A1;
 	TRAMA_DATA[2] = C_SET;
 	TRAMA_DATA[3] = A1 ^ C_SET;
 
-	for (int i = 0; i < length; i++)
-	{
-		TRAMA_DATA[4 + i] = buffer[i];
-	}
 
-	char * aux;
-	aux = malloc(2*sizeof(char));
+	unsigned char aux;
+	//aux = malloc(2*sizeof(char));
 	aux = bcc_cal(buffer);
+
+	TRAMA_DATA[4+length] = aux;
+	TRAMA_DATA[5+length] = FLAG;
+	/*
 	if (sizeof(aux) == 2) {
 		TRAMA_DATA[4 + length] = aux[0];
 		TRAMA_DATA[5 + length] = aux[1];
@@ -209,9 +213,14 @@ int llwrite(int fd, char *buffer, int length)
 	} else {
 		TRAMA_DATA[4 + length] = aux[0];
 		TRAMA_DATA[5 + length] = TRAMA_DATA[0];
-	}
+	}*/
 		
 	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
+
+	
+	write(STDOUT_FILENO,"\nTrama DATA sent\n",17);
+	
+	
 
 	return sizeof(TRAMA_DATA);
 }
@@ -318,8 +327,8 @@ int llread(int fd, char *buffer)
 int llclose(int fd, int flag)
 {
 
-	//sleep(1);
-/*
+	sleep(1);
+
 	if (flag == TRANSMITTER)
 	{
 		TRAMA_DISC[0] = FLAG;
@@ -336,19 +345,25 @@ int llclose(int fd, int flag)
 
 		write(fd,TRAMA_DISC,sizeof(TRAMA_DISC));
 
+		write(STDOUT_FILENO,"Trama DISC sent\n",16);
+
+
 		int curr_state = START;
-		unsigned char * buf;
+		unsigned char buf;
 
 		while(curr_state != FINISH){
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,buf,C_DISC,A2);
+			stateMachine(&curr_state,&buf,C_DISC,A2);
 
 		}
 
+		write(STDOUT_FILENO,"Trama DISC received\n",20);
 		
 		write(fd,TRAMA_UA,sizeof(TRAMA_UA));
+
+		write(STDOUT_FILENO,"Trama UA sent\n",14);
 
 
 	}
@@ -362,31 +377,37 @@ int llclose(int fd, int flag)
 		TRAMA_DISC[4] = FLAG;
 
 		int curr_state = START;
-		unsigned char * buf;
+		unsigned char buf;
 
 
 		while(curr_state != FINISH){
 			
 			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,buf,C_DISC,A1);
+			stateMachine(&curr_state,&buf,C_DISC,A1);
 
 		}
 
+		write(STDOUT_FILENO,"Trama DISC received\n",20);
+
 		write(fd,TRAMA_DISC,sizeof(TRAMA_DISC));
 
+		write(STDOUT_FILENO,"Trama DISC sent\n",16);
+		
 		curr_state = START;
 
 		while(curr_state != FINISH){
 			
-			read(fd,buf,1);
+			read(fd,&buf,1);
 			
-			stateMachine(&curr_state,buf,C_UA,A2);
+			stateMachine(&curr_state,&buf,C_UA,A2);
 
 		}
 
+		write(STDOUT_FILENO,"Trama UA received\n",18);
+
 	}
-*/
+
 	if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
 	{
 		perror("tcsetattr");

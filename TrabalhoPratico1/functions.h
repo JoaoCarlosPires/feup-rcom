@@ -33,6 +33,7 @@
 #define DATA 6
 #define BCC2_RCV 7
 
+#define C_RR 0b10000101
 #define FLAG 0b01111110
 #define A1 0b00000011
 #define A2 0b00000001
@@ -41,7 +42,7 @@
 #define C_DISC 0b00001011
 #define C_RR 0b10000101
 
-#define TIMEOUT 3
+#define TIMEOUT 5
 
 int allarms_called;
 unsigned char TRAMA_SET[5];
@@ -75,9 +76,13 @@ int llwrite(int fd, unsigned char * buffer, int length);
   * lê através da ligação de dados um conjunto de caracteres (cujo tamanho retorna) e guarda-os em buffer
   * @param fd identificador da ligação de dados
   * @param buffer array de caracteres recebidos
-  * @return comprimento do array (número de caracteres lidos) ou -1 em caso de erro
+  * @return array com os caracteres lidos ou -1 em caso de erro
   */
+<<<<<<< HEAD
 int llread(int fd, unsigned char * mensagem);
+=======
+char * llread(int fd, char * buffer);
+>>>>>>> 0862af107e896cdd4f88bc1bae551898f61f39a9
 
 /**
   * termina a ligação de dados
@@ -86,6 +91,7 @@ int llread(int fd, unsigned char * mensagem);
   */
 int llclose(int fd, int flag);
 
-void stateMachine(int *curr_state, unsigned char *input, int C, int A);
+int stateMachine(int curr_state, unsigned char *input, int C, int A);
+
 
 #endif //FUNCTIONS_H

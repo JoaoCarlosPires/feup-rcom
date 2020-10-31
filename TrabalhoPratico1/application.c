@@ -94,6 +94,10 @@ int createPicture(unsigned char * pictureBuffer,int size) {
 }
 
 int main(int argc, char** argv) {
+
+	alarm_active = 0;
+
+	(void)signal(SIGALRM, alarmHandler);
 	
 	char * porta = NULL;
 	char * imagem = NULL;
@@ -157,9 +161,10 @@ int main(int argc, char** argv) {
 		// escrita através do transmissor dos pacotes de dados
 		llwrite(fd, buffer, lenght);
 
+		
+
 		llclose(fd, TRANSMITTER);
 
-		
 		// receber confirmação
 	}
 

@@ -21,39 +21,13 @@
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
-
-#define START 0
-#define FLAG_RCV 1
-#define A_RCV 2
-#define C_RCV 3
-#define BCC_RCV 4
-#define FINISH 5
-#define DATA 6
-#define BCC2_RCV 7
-
-#define C_RR 0b10000101
-#define FLAG 0b01111110
-#define A1 0b00000011
-#define A2 0b00000001
-#define C_SET 0b00000011
-#define C_UA 0b00000111
-#define C_DISC 0b00001011
-#define C_RR 0b10000101
 
 #define TIMEOUT 5
 
-int allarms_called;
 unsigned char TRAMA_SET[5];
 unsigned char TRAMA_UA[5];
 unsigned char TRAMA_DISC[5];
 struct termios oldtio, newtio;
-int UA_RCV;
-int alarm_active;
-int STOP;
-
-unsigned char bcc_cal(unsigned char * buffer);
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)
@@ -78,7 +52,7 @@ int llwrite(int fd, unsigned char * buffer, int length);
   * @param buffer array de caracteres recebidos
   * @return array com os caracteres lidos ou -1 em caso de erro
   */
-int llread(int fd, unsigned char * mensagem);
+unsigned char * llread(int fd, int * size);
 
 /**
   * termina a ligação de dados
@@ -86,8 +60,5 @@ int llread(int fd, unsigned char * mensagem);
   * @return 0 em caso de sucesso e -1 em caso de erro
   */
 int llclose(int fd, int flag);
-
-int stateMachine(int curr_state, unsigned char *input, int C, int A);
-
 
 #endif //FUNCTIONS_H

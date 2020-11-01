@@ -11,15 +11,7 @@
 #include <signal.h>
 
 #include "functions.h"
-
-unsigned char * buffer;
-
-void alarmHandler()
-{
-	allarms_called++;
-	alarm_active = TRUE;
-	printf("Alarm Active\n");
-}
+#include "utils.h"
 
 /** 
  * processFile - prepara o array de caracteres que será enviado do emissor para o receptor, colocando-o na variável global *buffer*
@@ -27,9 +19,6 @@ void alarmHandler()
  * @return retorna o tamanho do array de caracteres, tamanho este que será passado como argumento à função llwrite() 
 */
 unsigned char* processFile(char* filePath, int *size) {
-
-	int c = 1;
-	int n = 0;
 
 	FILE *fl = fopen(filePath, "rb");  
     fseek(fl, 0, SEEK_END);  
@@ -39,45 +28,7 @@ unsigned char* processFile(char* filePath, int *size) {
     fread(buffer, 1, len, fl);  
     fclose(fl); 
 
-//	char * aux = malloc(len*2);
-//	int i = 0, aux_i = 0;
-
-	/*
-	while (aux_i != len) {
-		if (data[aux_i] == 0b01111110) {
-			aux[i] = 0x7d;
-			aux[i+1] = 0x5e;
-			i++;
-		}
-		else if (data[aux_i] == 0b01111101) {
-			aux[i] = 0x7d;
-			aux[i+1] = 0x5d;
-			i++;	
-		} else {
-			aux[i] = data[aux_i];
-		}
-		i++;
-		aux_i++;
-	}*/
-
-	
-
-	n = len > 255 ? (len % 255) : len;
-
-	int l2 = len / 256;
-	int l1 = len % 256;
-
-	char control[4] = {c, n, l2, l1};
-
-	int total_size = len; //+ 4*sizeof(int);
-
-	//buffer = malloc(total_size);
-
-//	memcpy(buffer, control, 4*sizeof(int));
-//	memcpy(buffer + 4, aux, len);
-
-	//printf("This is the size of the image %i", total_size);
-	*size = total_size;
+	*size = len;
 	return buffer;
 }
 
@@ -85,12 +36,12 @@ int createPicture(unsigned char * pictureBuffer,int size) {
 	FILE* picture; 
     picture = fopen("picture.gif", "wb+"); 
 
-	
 	fwrite(pictureBuffer, 1, size-1, picture);
 	fclose(picture);
 
 	return 0;
 }
+
 
 int main(int argc, char** argv) {
 
@@ -134,42 +85,47 @@ int main(int argc, char** argv) {
 		// leitura dos pacotes de dados recebidos
 		
 		unsigned char *mensagem;
+		int pictureSize = 0;
 		
-		int a = llread(fd, mensagem);
+		mensagem = llread(fd, &pictureSize);
 
 		llclose(fd,RECEIVER);
 
-		/*
-		if (createPicture(buffer,a) != 0) {
+		/*for (int i = 0; i < pictureSize; i++) {
+			printf("%u\n", mensagem[i]);
+		} */		
+
+		printf("Size after destuffing %i\n", pictureSize);
+
+		if (createPicture(mensagem, pictureSize) != 0) {
 			perror("Unable to create picture\n");
 			exit(-1);
-		}*/
+		}
 
-		// enviar confirmação
 	} else { 
-		// processamento da imagem
-		
+		// abertura da comunicação no lado do trasmissor
+		fd = llopen(porta, TRANSMITTER);
+
+		// processamento da imagem		
 		unsigned char * buffer = processFile(imagem,&lenght); 
+
+		/*for (int i = 0; i < lenght; i++) {
+			printf("%u\n", buffer[i]);
+		} */
 
 		if (lenght <= 0) {
 			printf("Error in image processing\n");
 			exit(1);
 		}
 
-		// abertura da comunicação no lado do trasmissor
-		fd = llopen(porta, TRANSMITTER);
+		printf("Original size of picture %i\n", lenght);
 
 		// escrita através do transmissor dos pacotes de dados
 		llwrite(fd, buffer, lenght);
 
-		
-
 		llclose(fd, TRANSMITTER);
 
-		// receber confirmação
 	}
-
-	//close(fd);
 
 	return 0;
 }

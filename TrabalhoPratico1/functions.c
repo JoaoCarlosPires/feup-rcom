@@ -1,38 +1,5 @@
 #include "functions.h"
-
-
-
-unsigned char bcc_cal(unsigned char *buffer)
-{
-	unsigned char bcc;
-
-	int len = sizeof(buffer);
-
-	for (int i = 0; i < len; i++)
-	{
-		bcc ^= buffer[i];
-	}
-
-	/*
-	char stuff_bcc[2];
-
-	if (bcc == 0b01111110)
-	{
-		stuff_bcc[0] = 0x7d;
-		stuff_bcc[1] = 0x5e;
-	}
-	else if (bcc == 0b01111101)
-	{
-		stuff_bcc[0] = 0x7d;
-		stuff_bcc[1] = 0x5d;
-	} else {
-		stuff_bcc[0] = bcc;
-	}*/
-
-	//char * aux = stuff_bcc;
-
-	return bcc;
-}
+#include "utils.h"
 
 int llopen(char *porta, int flag)
 {
@@ -189,7 +156,6 @@ int llopen(char *porta, int flag)
 
 int llwrite(int fd, unsigned char *buffer, int length)
 {	
-
 	unsigned char *TRAMA_DATA = malloc(length + 7);
 
 	TRAMA_DATA[0] = FLAG;
@@ -197,33 +163,35 @@ int llwrite(int fd, unsigned char *buffer, int length)
 	TRAMA_DATA[2] = C_SET;
 	TRAMA_DATA[3] = A1 ^ C_SET;
 
-
-	unsigned char aux;
-	//aux = malloc(2*sizeof(char));
+	unsigned char * aux;
 	aux = bcc_cal(buffer);
 
-	TRAMA_DATA[4+length] = aux;
-	TRAMA_DATA[5+length] = FLAG;
-	/*
-	if (sizeof(aux) == 2) {
+	buffer = stuffing(buffer, &length);
+
+	for (int i = 0; i < length; i++) {
+		TRAMA_DATA[4 + i] = buffer[i];
+	}
+	
+	int len = length + 6;
+
+	if (aux[1] != 0) {
+		len++;
 		TRAMA_DATA[4 + length] = aux[0];
 		TRAMA_DATA[5 + length] = aux[1];
 		TRAMA_DATA[6 + length] = TRAMA_DATA[0];
 	} else {
 		TRAMA_DATA[4 + length] = aux[0];
 		TRAMA_DATA[5 + length] = TRAMA_DATA[0];
-	}*/
+	}
 
 	int CURR_STATE = START;
 	unsigned char aux2;
 	
 	allarms_called = 0;
 
-
-
 	do {
 			
-			write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
+			write(fd, TRAMA_DATA, len);
 			write(STDOUT_FILENO,"Trama DATA sent\n",17);
 			alarm(TIMEOUT);
 			alarm_active = FALSE;
@@ -240,34 +208,24 @@ int llwrite(int fd, unsigned char *buffer, int length)
 
 	} while (alarm_active && (allarms_called < 3));
 
-		
-//	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
-
-	
-	
-	
 	allarms_called = 0;
 
-
-
-	return sizeof(TRAMA_DATA);
+	return len;
 }
 
-int llread(int fd, unsigned char *mensagem)
+unsigned char * llread(int fd, int * size)
 {
 
 	int CURR_STATE = START;
-	//int i = 0;
 	int flag = 0;
 	
-//	int picture = creat("picture.gif", 0666);
 	unsigned char ul;
-	
-	mensagem = (unsigned char *) malloc(0);
-	int mensagem_size = 0;
+
+	int mySize = *size;
+
+	unsigned char * mensagem = (unsigned char *) malloc(0);
 
 	while(flag == 0) {
-		
 		
 		read(fd, &ul, 1);
 
@@ -316,50 +274,13 @@ int llread(int fd, unsigned char *mensagem)
 		case DATA:
 				
 			if(ul == FLAG){
+				mensagem = destuffing(mensagem, &mySize);
 				flag = 1;
-				
 			}else{
-				mensagem = (unsigned char *)realloc(mensagem,++mensagem_size);
-				mensagem[mensagem_size-1] = ul;
-				
-				
-				
+				mensagem = (unsigned char *)realloc(mensagem,++mySize);
+				mensagem[mySize-1] = ul;
 			}
 			break;
-				
-				/*
-				write(STDOUT_FILENO, "teste", 6);
-				if (ul == FLAG) {
-					flag = 1;
-					write(STDOUT_FILENO, "test1", 6);
-				} else {
-					write(picture, &buffer[i], 1);
-					buffer = realloc(buffer, sizeof(buffer)+1);
-					i++;
-				}*/
-				/*buffer[i] = ul;
-				aux2 = bcc_cal(buffer);
-				if (sizeof(bcc_cal(buffer)) == 1) {
-					if (ul == aux2[0]) {
-						CURR_STATE = BCC2_RCV;
-					}
-				} else {
-					if (aux2[0] == ul) {
-						read(fd, &ul, 1);
-						if (aux2[1] == ul) {
-							counter++;
-							CURR_STATE = BCC2_RCV;
-						}
-					} else {
-						write(picture, &buffer[i], 1);
-						buffer = realloc(buffer, sizeof(buffer)+1);
-						i++;
-					}
-				}
-				*/
-
-		
-			
 		}
 
 	}
@@ -376,7 +297,9 @@ int llread(int fd, unsigned char *mensagem)
 
 	write(STDOUT_FILENO,"Trama RR sent\n",14);
 
-	return mensagem_size;
+	*size = mySize;
+
+	return mensagem;
 }
 
 int llclose(int fd, int flag)
@@ -470,63 +393,4 @@ int llclose(int fd, int flag)
 
 	close(fd);
 	return 0;
-}
-
-int stateMachine(int curr_state, unsigned char *input, int C, int A)
-{
-
-	switch (curr_state)
-	{
-
-	case START:
-
-		if (*input == FLAG)
-			curr_state = FLAG_RCV;
-		break;
-
-	case FLAG_RCV:
-
-		if (*input == A)
-			curr_state = A_RCV;
-		else
-			curr_state = START;
-		break;
-
-	case A_RCV:
-
-		if (*input == C)
-			curr_state = C_RCV;
-		else
-			curr_state = START;
-		break;
-
-	case C_RCV:
-
-		if (*input == (A ^ C))
-			curr_state = BCC_RCV;
-		else
-			curr_state = START;
-		break;
-
-	case BCC_RCV:
-
-		if (*input == FLAG)
-		{
-			STOP = TRUE;
-			alarm(0);
-			UA_RCV = 1;
-			curr_state = FINISH;
-		}else{
-			curr_state = START;
-		}
-		break;
-	
-
-	default:
-		break;
-	
-	}
-	
-	return curr_state;
-
 }

@@ -78,11 +78,7 @@ int llwrite(int fd, unsigned char * buffer, int length);
   * @param buffer array de caracteres recebidos
   * @return array com os caracteres lidos ou -1 em caso de erro
   */
-<<<<<<< HEAD
 int llread(int fd, unsigned char * mensagem);
-=======
-char * llread(int fd, char * buffer);
->>>>>>> 0862af107e896cdd4f88bc1bae551898f61f39a9
 
 /**
   * termina a ligação de dados

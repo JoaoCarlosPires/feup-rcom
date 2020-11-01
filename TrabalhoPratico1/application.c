@@ -26,7 +26,7 @@ void alarmHandler()
  * @param filePath - path do ficheiro imagem a processar
  * @return retorna o tamanho do array de caracteres, tamanho este que será passado como argumento à função llwrite() 
 */
-int processFile(char* filePath) {
+unsigned char* processFile(char* filePath, int *size) {
 
 	int c = 1;
 	int n = 0;
@@ -34,14 +34,15 @@ int processFile(char* filePath) {
 	FILE *fl = fopen(filePath, "rb");  
     fseek(fl, 0, SEEK_END);  
     long len = ftell(fl);  
-    char * data = malloc(len);  
+    unsigned char * buffer = (unsigned char*)malloc(len);  
     fseek(fl, 0, SEEK_SET);  
-    fread(data, 1, len, fl);  
+    fread(buffer, 1, len, fl);  
     fclose(fl); 
 
-	char * aux = malloc(len*2);
-	int i = 0, aux_i = 0;
+//	char * aux = malloc(len*2);
+//	int i = 0, aux_i = 0;
 
+	/*
 	while (aux_i != len) {
 		if (data[aux_i] == 0b01111110) {
 			aux[i] = 0x7d;
@@ -57,9 +58,9 @@ int processFile(char* filePath) {
 		}
 		i++;
 		aux_i++;
-	}
+	}*/
 
-	len = sizeof(aux);
+	
 
 	n = len > 255 ? (len % 255) : len;
 
@@ -68,16 +69,16 @@ int processFile(char* filePath) {
 
 	char control[4] = {c, n, l2, l1};
 
-	int total_size = len + 4*sizeof(int);
+	int total_size = len; //+ 4*sizeof(int);
 
-	buffer = malloc(total_size);
+	//buffer = malloc(total_size);
 
-	memcpy(buffer, control, 4*sizeof(int));
-	memcpy(buffer + 4, aux, len);
+//	memcpy(buffer, control, 4*sizeof(int));
+//	memcpy(buffer + 4, aux, len);
 
-	printf("This is the size of the image %i", total_size);
-
-	return total_size;
+	//printf("This is the size of the image %i", total_size);
+	*size = total_size;
+	return buffer;
 }
 
 int createPicture(unsigned char * pictureBuffer,int size) {
@@ -85,9 +86,7 @@ int createPicture(unsigned char * pictureBuffer,int size) {
     picture = fopen("picture.gif", "wb+"); 
 
 	
-	
-
-	fwrite(pictureBuffer, 1, size+1, picture);
+	fwrite(pictureBuffer, 1, size-1, picture);
 	fclose(picture);
 
 	return 0;
@@ -149,7 +148,9 @@ int main(int argc, char** argv) {
 		// enviar confirmação
 	} else { 
 		// processamento da imagem
-		lenght = processFile(imagem); 
+		
+		unsigned char * buffer = processFile(imagem,&lenght); 
+
 		if (lenght <= 0) {
 			printf("Error in image processing\n");
 			exit(1);

@@ -233,7 +233,7 @@ int llwrite(int fd, unsigned char *buffer, int length)
 			{
 				read(fd, &aux2, 1);
 			//	write(STDOUT_FILENO, "Stuck here2", 11);
-				stateMachine(&CURR_STATE, &aux2, C_RR, A1);
+				CURR_STATE = stateMachine(CURR_STATE, &aux2, C_RR, A1);
 			}
 
 			//write(STDOUT_FILENO, "After while\n", 13);
@@ -243,29 +243,12 @@ int llwrite(int fd, unsigned char *buffer, int length)
 		
 //	write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
 
-	int CURR_STATE = START;
-	unsigned char aux2;
+	
+	
 	
 	allarms_called = 0;
 
-	do {
-			alarm_active = 0;
-			write(fd, TRAMA_DATA, sizeof(TRAMA_DATA));
-			write(STDOUT_FILENO,"Trama DATA sent\n",17);
-			alarm(TIMEOUT);
-			
-			while ((CURR_STATE!=FINISH) && (!alarm_active))
-			{
-				read(fd, &aux2, 1);
-				write(STDOUT_FILENO, "Stuck here2", 11);
-				CURR_STATE = stateMachine(CURR_STATE, &aux2, C_RR, A1);
-			}
 
-			write(STDOUT_FILENO, "After while\n", 13);
-
-	} while (alarm_active && (allarms_called < 3));
-
-	write(STDOUT_FILENO, "Trama rr received\n", 19);
 
 	return sizeof(TRAMA_DATA);
 }
@@ -532,9 +515,9 @@ int stateMachine(int curr_state, unsigned char *input, int C, int A)
 			STOP = TRUE;
 			alarm(0);
 			UA_RCV = 1;
-			*curr_state = FINISH;
+			curr_state = FINISH;
 		}else{
-			*curr_state = START;
+			curr_state = START;
 		}
 		break;
 	

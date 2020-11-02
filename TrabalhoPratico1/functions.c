@@ -155,8 +155,8 @@ int llopen(char *porta, int flag)
 		return TRUE;
 }
 
-int llwrite(int fd, unsigned char *buffer, int length)
-{
+int llwrite(int fd, unsigned char *buffer, int length) {
+	
 	unsigned char *TRAMA_DATA = malloc(length + 7);
 
 	TRAMA_DATA[0] = FLAG;
@@ -169,22 +169,18 @@ int llwrite(int fd, unsigned char *buffer, int length)
 
 	buffer = stuffing(buffer, &length);
 
-	for (int i = 0; i < length; i++)
-	{
+	for (int i = 0; i < length; i++) {
 		TRAMA_DATA[4 + i] = buffer[i];
 	}
 
 	int len = length + 6;
 
-	if (bcc2[1] != 0)
-	{
+	if (bcc2[1] != 0) {
 		len++;
 		TRAMA_DATA[4 + length] = bcc2[0];
 		TRAMA_DATA[5 + length] = bcc2[1];
 		TRAMA_DATA[6 + length] = TRAMA_DATA[0];
-	}
-	else
-	{
+	} else {
 		TRAMA_DATA[4 + length] = bcc2[0];
 		TRAMA_DATA[5 + length] = TRAMA_DATA[0];
 	}
@@ -194,9 +190,7 @@ int llwrite(int fd, unsigned char *buffer, int length)
 
 	allarms_called = 0;
 
-	do
-	{
-
+	do {
 		write(fd, TRAMA_DATA, len);
 		write(STDOUT_FILENO, "llwrite - Trama DATA sent\n", 26);
 		alarm(TIMEOUT);
@@ -210,8 +204,6 @@ int llwrite(int fd, unsigned char *buffer, int length)
 			CURR_STATE = stateMachine(CURR_STATE, &buf, C_RR, A1);
 		}
 
-		
-
 	} while (alarm_active && (allarms_called < MAXALARMS));
 
 	allarms_called = 0;
@@ -219,7 +211,7 @@ int llwrite(int fd, unsigned char *buffer, int length)
 	return len;
 }
 
-unsigned char *llread(int fd, int *size)
+unsigned char *llread(int fd)
 {
 
 	int CURR_STATE = START;
@@ -227,11 +219,13 @@ unsigned char *llread(int fd, int *size)
 
 	unsigned char ul;
 
-	int mySize = *size;
+	int mySize = 0;
 
 	unsigned char *mensagem = (unsigned char *)malloc(0);
 
-	while (flag == 0)
+	int counter = 0;
+
+	while (flag == 0 && counter < 5)
 	{
 		read(fd, &ul, 1);
 
@@ -284,17 +278,18 @@ unsigned char *llread(int fd, int *size)
 
 				unsigned char singleBcc = mensagem[mySize-1];
 
-				unsigned char * bcc2 = bcc_cal(mensagem, mySize-2, NOSTUFFING);
+				unsigned char * bcc2 = bcc_cal(mensagem, mySize-1, NOSTUFFING);
 
 				if (singleBcc == bcc2[0]) {
 					flag = 1;
 				} else {
 					write(STDOUT_FILENO, "llread - BCC2 doesn't match with the original\n", 46);
+					counter++;
 					free(mensagem);
 					mensagem = malloc(0);
 					mySize = 0;
 					CURR_STATE = START;
-				}	
+				}
 			}
 			else
 			{
@@ -316,8 +311,6 @@ unsigned char *llread(int fd, int *size)
 	write(fd, TRAMA_RR, 5);
 
 	write(STDOUT_FILENO, "llread - Trama RR sent\n", 23);
-
-	*size = --mySize;
 
 	return mensagem;
 }

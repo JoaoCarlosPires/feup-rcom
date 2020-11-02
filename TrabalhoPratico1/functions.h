@@ -53,7 +53,7 @@ int llwrite(int fd, unsigned char * buffer, int length);
   * @param buffer array de caracteres recebidos
   * @return array com os caracteres lidos ou -1 em caso de erro
   */
-unsigned char * llread(int fd, int * size);
+unsigned char * llread(int fd);
 
 /**
   * termina a ligação de dados

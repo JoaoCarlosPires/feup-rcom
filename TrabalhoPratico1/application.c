@@ -28,15 +28,32 @@ unsigned char* processFile(char* filePath, int *size) {
     fread(buffer, 1, len, fl);  
     fclose(fl); 
 
-	*size = len;
-	return buffer;
+	*size = len+4;
+
+	unsigned char * control = (unsigned char*)malloc(4+len);
+	control[0] = C_Data;	// C
+	control[1] = 0;			// N
+	control[2] = len / 255;	// L2
+	control[3] = len % 255; // L1
+
+	for (int i = 0; i < len; i++) {
+		control[4+i] = buffer[i];
+	}
+
+	return control;
 }
 
-int createPicture(unsigned char * pictureBuffer,int size) {
+int createPicture(unsigned char * pictureBuffer) {
 	FILE* picture; 
     picture = fopen("picture.gif", "wb+"); 
 
-	fwrite(pictureBuffer, 1, size-1, picture);
+	int pictureSize = pictureBuffer[2]*255 + pictureBuffer[3];
+	unsigned char * auxiliar = malloc(pictureSize);
+	for (int i = 0; i < pictureSize; i++) {
+		auxiliar[i] = pictureBuffer[i+4];
+	}
+
+	fwrite(auxiliar, 1, pictureSize-1, picture);
 	fclose(picture);
 
 	return 0;
@@ -85,13 +102,23 @@ int main(int argc, char** argv) {
 			// leitura dos pacotes de dados recebidos
 			
 			unsigned char *mensagem;
-			int pictureSize = 0;
+			unsigned char *mensagem_start;
+			unsigned char *mensagem_end;
 			
-			mensagem = llread(fd, &pictureSize);
+			mensagem_start = llread(fd);
 
+			if (mensagem_start[0] == C_Begin) {
+				write(STDOUT_FILENO, "Received start message\n", 23);
+				mensagem = llread(fd);
+				mensagem_end = llread(fd);
+				if (mensagem_end[0] == C_End) {
+					write(STDOUT_FILENO, "Received end message\n", 21);
+				}
+			}
+			
 			llclose(fd,RECEIVER);		
 
-			if (createPicture(mensagem, pictureSize) != 0) {
+			if (createPicture(mensagem) != 0) {
 				perror("Unable to create picture\n");
 				exit(-1);
 			}
@@ -104,13 +131,24 @@ int main(int argc, char** argv) {
 			// processamento da imagem		
 			unsigned char * buffer = processFile(imagem,&lenght); 
 
-			if (lenght <= 0) {
+			if (lenght <= 5) { // Exigimos que a imagem tenha pelo menos 1 byte. Os outros 4 são os do cabeçalho
 				printf("Error in image processing\n");
 				exit(1);
 			}
 
+			unsigned char * control = malloc(7);
+			control[0] = C_Begin; 		//C
+			control[1] = T_FileSize;	//T1
+			control[2] = 1;				//L1
+			control[3] = lenght;		//V1
+
 			// escrita através do transmissor dos pacotes de dados
+			llwrite(fd, control, 4);
+
 			llwrite(fd, buffer, lenght);
+
+			control[0] = C_End;			//C
+			llwrite(fd, control, 4);
 
 			llclose(fd, TRANSMITTER);
 

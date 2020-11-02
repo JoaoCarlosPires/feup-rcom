@@ -38,6 +38,12 @@
 #define C_DISC 0b00001011
 #define C_RR 0b10000101
 
+#define C_Data 1
+#define C_Begin 2
+#define C_End 3
+#define T_FileSize 0
+#define T_FileName 1
+
 #define STUFFING 0
 #define NOSTUFFING 1
 

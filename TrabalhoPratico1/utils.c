@@ -109,15 +109,23 @@ unsigned char * stuffing(unsigned char * byteArray, int * len) {
 
 	int trackI = 0;
 
+	unsigned char * auxiliar;
+
 	for (int i = 0; i < *len; i ++) {
 		if (byteArray[i] == 0b01111110) {
-			mensagem = realloc(mensagem, ++*len);
+			++*len;
+			auxiliar = mensagem;
+			mensagem = malloc(*len);
+			mensagem = auxiliar;
 			mensagem[trackI] = 0x7d;
 			mensagem[trackI+1] = 0x5e;
 			trackI++;
 			}
 		else if (byteArray[i] == 0b01111101) {
-			mensagem = realloc(mensagem, ++*len);
+			++*len;
+			auxiliar = mensagem;
+			mensagem = malloc(*len);
+			mensagem = auxiliar;
 			mensagem[trackI] = 0x7d;
 			mensagem[trackI+1] = 0x5d;
 			trackI++;
@@ -126,6 +134,7 @@ unsigned char * stuffing(unsigned char * byteArray, int * len) {
 		}
 		trackI++;
 	}
+
 
 	return mensagem;
 }
@@ -139,7 +148,7 @@ unsigned char * destuffing(unsigned char * byteArray, int * len) {
 	int mySize = *len;
 	int auxSize = *len;
 
-	for (int i = 0; i < auxSize-1; i++) {
+	for (int i = 0; i < auxSize; i++) {
 		if (byteArray[i] == 0b1111101 && byteArray[i+1] == 0b1011110) {
 			mensagem[trackI] = 0b01111110; 	
 			mySize--;

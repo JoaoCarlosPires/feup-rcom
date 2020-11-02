@@ -206,8 +206,17 @@ int llwrite(int fd, unsigned char *buffer, int length) {
 
 	} while (alarm_active && (allarms_called < MAXALARMS));
 
+	if (allarms_called == MAXALARMS) {
+		unsigned char escape[1];
+		escape[0] = ESCAPE;
+		write(fd, escape, 1);
+		write(fd, escape, 1);
+		len = 0;
+	} 
+		
 	allarms_called = 0;
-
+	alarm_active = 0;
+	
 	return len;
 }
 
@@ -218,16 +227,25 @@ unsigned char *llread(int fd)
 	int flag = 0;
 
 	unsigned char ul;
-
+	int second = 0;
 	int mySize = 0;
 
 	unsigned char *mensagem = (unsigned char *)malloc(0);
 
-	int counter = 0;
-
-	while (flag == 0 && counter < 5)
+	while (flag == 0)
 	{
 		read(fd, &ul, 1);
+
+		if (ul == ESCAPE && !second) {
+			second++;
+		} else if (ul == ESCAPE && second) {
+			write(STDOUT_FILENO, "Escape command received\n", 24);
+			mensagem = malloc(1);
+			mensagem[0] = ul;
+			break;
+		} else {
+			second = 0;
+		}
 
 		switch (CURR_STATE)
 		{
@@ -284,7 +302,6 @@ unsigned char *llread(int fd)
 					flag = 1;
 				} else {
 					write(STDOUT_FILENO, "llread - BCC2 doesn't match with the original\n", 46);
-					counter++;
 					free(mensagem);
 					mensagem = malloc(0);
 					mySize = 0;
@@ -300,17 +317,19 @@ unsigned char *llread(int fd)
 		}
 	}
 
-	unsigned char TRAMA_RR[5];
+	if (mensagem[0] != 0) {
+		unsigned char TRAMA_RR[5];
 
-	TRAMA_RR[0] = FLAG;
-	TRAMA_RR[1] = A1;
-	TRAMA_RR[2] = C_RR;
-	TRAMA_RR[3] = A1 ^ C_RR;
-	TRAMA_RR[4] = FLAG;
+		TRAMA_RR[0] = FLAG;
+		TRAMA_RR[1] = A1;
+		TRAMA_RR[2] = C_RR;
+		TRAMA_RR[3] = A1 ^ C_RR;
+		TRAMA_RR[4] = FLAG;
 
-	write(fd, TRAMA_RR, 5);
+		write(fd, TRAMA_RR, 5);
 
-	write(STDOUT_FILENO, "llread - Trama RR sent\n", 23);
+		write(STDOUT_FILENO, "llread - Trama RR sent\n", 23);
+	}
 
 	return mensagem;
 }
@@ -390,6 +409,10 @@ int llclose(int fd, int flag)
 		}
 
 		write(STDOUT_FILENO, "llclose - Trama DISC received\n", 30);
+
+		allarms_called = 0;
+		alarm_active = 0;
+		alarm(0);
 
 		do
 		{

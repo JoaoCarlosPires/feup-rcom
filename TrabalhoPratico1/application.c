@@ -110,10 +110,12 @@ int main(int argc, char** argv) {
 			if (mensagem_start[0] == C_Begin) {
 				write(STDOUT_FILENO, "Received start message\n", 23);
 				mensagem = llread(fd);
-				mensagem_end = llread(fd);
-				if (mensagem_end[0] == C_End) {
-					write(STDOUT_FILENO, "Received end message\n", 21);
-				}
+				if (mensagem[0] != ESCAPE) {
+					mensagem_end = llread(fd);
+					if (mensagem_end[0] == C_End) {
+						write(STDOUT_FILENO, "Received end message\n", 21);
+					}	
+				}  
 			}
 			
 			llclose(fd,RECEIVER);		
@@ -124,9 +126,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-	} else { 
-		// abertura da comunicação no lado do trasmissor
-		if (llopen(porta, TRANSMITTER)) {
+	} else if (llopen(porta, TRANSMITTER)) { // abertura da comunicação no lado do trasmissor
 
 			// processamento da imagem		
 			unsigned char * buffer = processFile(imagem,&lenght); 
@@ -143,18 +143,16 @@ int main(int argc, char** argv) {
 			control[3] = lenght;		//V1
 
 			// escrita através do transmissor dos pacotes de dados
-			llwrite(fd, control, 4);
-
-			llwrite(fd, buffer, lenght);
-
-			control[0] = C_End;			//C
-			llwrite(fd, control, 4);
-
+			if (llwrite(fd, control, 4))
+				if (llwrite(fd, buffer, lenght)) {
+					control[0] = C_End;			//C
+					llwrite(fd, control, 4);
+				}
+						
 			llclose(fd, TRANSMITTER);
 
-		}
-
 	}
+
 
 	if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
 			perror("tcsetattr");
@@ -165,3 +163,4 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+

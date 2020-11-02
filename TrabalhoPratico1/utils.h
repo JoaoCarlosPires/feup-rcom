@@ -47,6 +47,8 @@
 #define STUFFING 0
 #define NOSTUFFING 1
 
+#define ESCAPE 0b01111101
+
 int STOP;
 int UA_RCV;
 int allarms_called;

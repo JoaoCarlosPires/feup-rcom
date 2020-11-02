@@ -7,36 +7,34 @@ void alarmHandler()
 	printf("Alarm Active\n");
 }
 
-unsigned char * bcc_cal(unsigned char *buffer)
+unsigned char * bcc_cal(unsigned char *buffer, int length)
 {
-	unsigned char bcc = buffer[0];
+	unsigned char aux = buffer[0];
 
-	int len = sizeof(buffer);
-
-	for (int i = 1; i < len; i++)
+	for (int i = 1; i < length; i++)
 	{
-		bcc ^= buffer[i];
+		aux ^= buffer[i];
 	}
 
-	unsigned char stuff_bcc[2];
+	unsigned char *bcc2 = malloc(2);
 
-	if (bcc == 0b01111110)
+	bcc2[0] = aux;
+	bcc2[1] = 0;
+
+	if (bcc2[0] == 0b01111110)
 	{
-		stuff_bcc[0] = 0x7d;
-		stuff_bcc[1] = 0x5e;
+		bcc2[0] = 0x7d;
+		bcc2[1] = 0x5e;
 	}
-	else if (bcc == 0b01111101)
+	else if (bcc2[0] == 0b01111101)
 	{
-		stuff_bcc[0] = 0x7d;
-		stuff_bcc[1] = 0x5d;
-	} else {
-		stuff_bcc[0] = bcc;
-		stuff_bcc[1] = 0;
+		bcc2[0] = 0x7d;
+		bcc2[1] = 0x5d;
 	}
 
-	unsigned char * aux = stuff_bcc;
+	
 
-	return aux;
+	return bcc2;
 }
 
 int stateMachine(int curr_state, unsigned char *input, int C, int A)

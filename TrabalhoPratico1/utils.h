@@ -27,6 +27,8 @@
 #define DATA 6
 #define BCC2_RCV 7
 
+#define MAXALARMS 3
+
 #define C_RR 0b10000101
 #define FLAG 0b01111110
 #define A1 0b00000011
@@ -43,7 +45,7 @@ int alarm_active;
 
 void alarmHandler();
 
-unsigned char * bcc_cal(unsigned char * buffer);
+unsigned char * bcc_cal(unsigned char * buffer,int length);
 
 int stateMachine(int curr_state, unsigned char *input, int C, int A);
 

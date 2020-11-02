@@ -165,7 +165,7 @@ int llwrite(int fd, unsigned char *buffer, int length)
 	TRAMA_DATA[3] = A1 ^ C_SET;
 
 	unsigned char *bcc2;
-	bcc2 = bcc_cal(buffer,length);
+	bcc2 = bcc_cal(buffer,length, STUFFING);
 
 	buffer = stuffing(buffer, &length);
 
@@ -233,10 +233,7 @@ unsigned char *llread(int fd, int *size)
 
 	while (flag == 0)
 	{
-
 		read(fd, &ul, 1);
-
-		//counter++;
 
 		switch (CURR_STATE)
 		{
@@ -284,7 +281,20 @@ unsigned char *llread(int fd, int *size)
 			if (ul == FLAG)
 			{
 				mensagem = destuffing(mensagem, &mySize);
-				flag = 1;
+
+				unsigned char singleBcc = mensagem[mySize-1];
+
+				unsigned char * bcc2 = bcc_cal(mensagem, mySize-2, NOSTUFFING);
+
+				if (singleBcc == bcc2[0]) {
+					flag = 1;
+				} else {
+					write(STDOUT_FILENO, "llread - BCC2 doesn't match with the original\n", 46);
+					free(mensagem);
+					mensagem = malloc(0);
+					mySize = 0;
+					CURR_STATE = START;
+				}	
 			}
 			else
 			{
@@ -307,7 +317,7 @@ unsigned char *llread(int fd, int *size)
 
 	write(STDOUT_FILENO, "llread - Trama RR sent\n", 23);
 
-	*size = mySize;
+	*size = --mySize;
 
 	return mensagem;
 }

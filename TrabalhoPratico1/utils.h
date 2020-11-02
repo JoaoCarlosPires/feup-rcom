@@ -38,6 +38,9 @@
 #define C_DISC 0b00001011
 #define C_RR 0b10000101
 
+#define STUFFING 0
+#define NOSTUFFING 1
+
 int STOP;
 int UA_RCV;
 int allarms_called;
@@ -45,7 +48,7 @@ int alarm_active;
 
 void alarmHandler();
 
-unsigned char * bcc_cal(unsigned char * buffer,int length);
+unsigned char * bcc_cal(unsigned char * buffer,int length, int stuff_flag);
 
 int stateMachine(int curr_state, unsigned char *input, int C, int A);
 

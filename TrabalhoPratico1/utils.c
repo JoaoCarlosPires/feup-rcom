@@ -7,7 +7,7 @@ void alarmHandler()
 	printf("Alarm Active\n");
 }
 
-unsigned char * bcc_cal(unsigned char *buffer, int length)
+unsigned char * bcc_cal(unsigned char *buffer, int length, int stuff_flag)
 {
 	unsigned char aux = buffer[0];
 
@@ -16,25 +16,32 @@ unsigned char * bcc_cal(unsigned char *buffer, int length)
 		aux ^= buffer[i];
 	}
 
-	unsigned char *bcc2 = malloc(2);
+	if (!stuff_flag) {
 
-	bcc2[0] = aux;
-	bcc2[1] = 0;
+		unsigned char *bcc2 = malloc(2);
 
-	if (bcc2[0] == 0b01111110)
-	{
-		bcc2[0] = 0x7d;
-		bcc2[1] = 0x5e;
+		bcc2[0] = aux;
+		bcc2[1] = 0;
+
+		if (bcc2[0] == 0b01111110)
+		{
+			bcc2[0] = 0x7d;
+			bcc2[1] = 0x5e;
+		}
+		else if (bcc2[0] == 0b01111101)
+		{
+			bcc2[0] = 0x7d;
+			bcc2[1] = 0x5d;
+		}
+
+		return bcc2;
+	} else {
+		unsigned char * bcc2 = malloc(2);
+		bcc2[0] = aux;
+		return bcc2;
 	}
-	else if (bcc2[0] == 0b01111101)
-	{
-		bcc2[0] = 0x7d;
-		bcc2[1] = 0x5d;
-	}
+		
 
-	
-
-	return bcc2;
 }
 
 int stateMachine(int curr_state, unsigned char *input, int C, int A)
@@ -120,8 +127,6 @@ unsigned char * stuffing(unsigned char * byteArray, int * len) {
 		trackI++;
 	}
 
-	printf("Array after stuffing %i\n", *len);
-
 	return mensagem;
 }
 
@@ -132,10 +137,9 @@ unsigned char * destuffing(unsigned char * byteArray, int * len) {
 	int trackI = 0;
 
 	int mySize = *len;
+	int auxSize = *len;
 
-	printf("Array before destuffing %i\n", mySize);
-
-	for (int i = 0; i < mySize; i++) {
+	for (int i = 0; i < auxSize-1; i++) {
 		if (byteArray[i] == 0b1111101 && byteArray[i+1] == 0b1011110) {
 			mensagem[trackI] = 0b01111110; 	
 			mySize--;

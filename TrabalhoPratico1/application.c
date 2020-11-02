@@ -89,13 +89,7 @@ int main(int argc, char** argv) {
 			
 			mensagem = llread(fd, &pictureSize);
 
-			llclose(fd,RECEIVER);
-
-			/*for (int i = 0; i < pictureSize; i++) {
-				printf("%u\n", mensagem[i]);
-			} */		
-
-			printf("Size after destuffing %i\n", pictureSize);
+			llclose(fd,RECEIVER);		
 
 			if (createPicture(mensagem, pictureSize) != 0) {
 				perror("Unable to create picture\n");
@@ -110,16 +104,10 @@ int main(int argc, char** argv) {
 			// processamento da imagem		
 			unsigned char * buffer = processFile(imagem,&lenght); 
 
-			/*for (int i = 0; i < lenght; i++) {
-				printf("%u\n", buffer[i]);
-			} */
-
 			if (lenght <= 0) {
 				printf("Error in image processing\n");
 				exit(1);
 			}
-
-			printf("Original size of picture %i\n", lenght);
 
 			// escrita através do transmissor dos pacotes de dados
 			llwrite(fd, buffer, lenght);

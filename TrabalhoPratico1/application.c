@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 	
 	char * porta = NULL;
 	char * imagem = NULL;
-	int fd, lenght;
+	int lenght;
 
 	(void)signal(SIGALRM, alarmHandler);
 
@@ -80,52 +80,62 @@ int main(int argc, char** argv) {
 
 	if (imagem == NULL) {
 		// abertura da comunicação no lado do receptor
-		fd = llopen(porta, RECEIVER);
-
-		// leitura dos pacotes de dados recebidos
+		if (llopen(porta, RECEIVER)) {
 		
-		unsigned char *mensagem;
-		int pictureSize = 0;
-		
-		mensagem = llread(fd, &pictureSize);
+			// leitura dos pacotes de dados recebidos
+			
+			unsigned char *mensagem;
+			int pictureSize = 0;
+			
+			mensagem = llread(fd, &pictureSize);
 
-		llclose(fd,RECEIVER);
+			llclose(fd,RECEIVER);
 
-		/*for (int i = 0; i < pictureSize; i++) {
-			printf("%u\n", mensagem[i]);
-		} */		
+			/*for (int i = 0; i < pictureSize; i++) {
+				printf("%u\n", mensagem[i]);
+			} */		
 
-		printf("Size after destuffing %i\n", pictureSize);
+			printf("Size after destuffing %i\n", pictureSize);
 
-		if (createPicture(mensagem, pictureSize) != 0) {
-			perror("Unable to create picture\n");
-			exit(-1);
+			if (createPicture(mensagem, pictureSize) != 0) {
+				perror("Unable to create picture\n");
+				exit(-1);
+			}
 		}
 
 	} else { 
 		// abertura da comunicação no lado do trasmissor
-		fd = llopen(porta, TRANSMITTER);
+		if (llopen(porta, TRANSMITTER)) {
 
-		// processamento da imagem		
-		unsigned char * buffer = processFile(imagem,&lenght); 
+			// processamento da imagem		
+			unsigned char * buffer = processFile(imagem,&lenght); 
 
-		/*for (int i = 0; i < lenght; i++) {
-			printf("%u\n", buffer[i]);
-		} */
+			/*for (int i = 0; i < lenght; i++) {
+				printf("%u\n", buffer[i]);
+			} */
 
-		if (lenght <= 0) {
-			printf("Error in image processing\n");
-			exit(1);
+			if (lenght <= 0) {
+				printf("Error in image processing\n");
+				exit(1);
+			}
+
+			printf("Original size of picture %i\n", lenght);
+
+			// escrita através do transmissor dos pacotes de dados
+			llwrite(fd, buffer, lenght);
+
+			llclose(fd, TRANSMITTER);
+
 		}
 
-		printf("Original size of picture %i\n", lenght);
-
-		// escrita através do transmissor dos pacotes de dados
-		llwrite(fd, buffer, lenght);
-
-		llclose(fd, TRANSMITTER);
-
 	}
+
+	if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
+			perror("tcsetattr");
+			exit(-1);
+		}
+
+	close(fd);
 
 	return 0;
 }

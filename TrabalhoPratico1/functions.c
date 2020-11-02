@@ -3,11 +3,6 @@
 
 int llopen(char *porta, int flag)
 {
-
-	
-
-	int fd;
-
 	fd = open(porta, O_RDWR | O_NOCTTY);
 	if (fd < 0)
 	{
@@ -151,7 +146,10 @@ int llopen(char *porta, int flag)
 		write(STDOUT_FILENO,"Trama UA sent\n",14);
 	}
 
-	return fd;
+	if (allarms_called >= 3) {
+		return FALSE;
+	} else
+		return TRUE;
 }
 
 int llwrite(int fd, unsigned char *buffer, int length)
@@ -385,12 +383,5 @@ int llclose(int fd, int flag)
 
 	}
 
-	if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
-	{
-		perror("tcsetattr");
-		exit(-1);
-	}
-
-	close(fd);
 	return 0;
 }

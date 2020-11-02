@@ -28,6 +28,7 @@ unsigned char TRAMA_SET[5];
 unsigned char TRAMA_UA[5];
 unsigned char TRAMA_DISC[5];
 struct termios oldtio, newtio;
+int fd;
 
 /**
   * inicia a comunicação e procede de acordo com o tipo (send or receive)

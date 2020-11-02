@@ -34,7 +34,7 @@ int fd;
   * inicia a comunicação e procede de acordo com o tipo (send or receive)
   * @param porta COM1, COM2, ...
   * @param flag TRANSMITTER (1) or RECEIVER (0)
-  * @return identificador da ligação de dados ou -1 em caso de erro
+  * @return 1 em caso de sucesso; 0 se houve algum erro na abertura da ligação
   */
 int llopen(char* porta, int flag);
 
@@ -48,9 +48,8 @@ int llopen(char* porta, int flag);
 int llwrite(int fd, unsigned char * buffer, int length);
 
 /**
-  * lê através da ligação de dados um conjunto de caracteres (cujo tamanho retorna) e guarda-os em buffer
+  * lê através da ligação de dados um array de caracteres e retorna-o
   * @param fd identificador da ligação de dados
-  * @param buffer array de caracteres recebidos
   * @return array com os caracteres lidos ou -1 em caso de erro
   */
 unsigned char * llread(int fd);
@@ -58,6 +57,7 @@ unsigned char * llread(int fd);
 /**
   * termina a ligação de dados
   * @param fd identificador da ligação de dados
+  * @param flag TRANSMITTER (1) or RECEIVER (0)
   * @return 0 em caso de sucesso e -1 em caso de erro
   */
 int llclose(int fd, int flag);

@@ -54,14 +54,46 @@ int UA_RCV;
 int allarms_called;
 int alarm_active;
 
+/**
+ * alarmHandler - incrementa a variável allarms_called e coloca a variável
+ * alarm_active a TRUE
+*/
 void alarmHandler();
 
+/**
+ * bcc_cal - calcula o bcc2 com ou sem stuffing (depende do terceiro argumento)
+ * @param buffer array de caracteres sobre o qual o bcc2 será calculado
+ * @param lenght comprimento do array de caracteres
+ * @param stuff_flag STUFFING (bcc2 com stuffing) ou DESTUFFING (bcc2 sem stuffing) 
+ * @return array de caracteres com o valor de bcc2 (c/ stuffing - array c/ 1 ou 2 elem.; s/ stuffing - array c/ 1 elem.)
+*/
 unsigned char * bcc_cal(unsigned char * buffer,int length, int stuff_flag);
 
+/**
+ * stateMachine - máquina de estados que recebe o estado atual e verifica se o input é o próximo estando,
+ * agindo conforme este último resultado.
+ * @param curr_state Estado atual
+ * @param input Valor recebido
+ * @param C Valor do C para a ocasião
+ * @param A Valor do A para a ocasião
+ * @return Estado atual em caso de sucesso; valor negativo em caso de erro
+*/
 int stateMachine(int curr_state, unsigned char *input, int C, int A);
 
+/**
+ * stuffing - recebe um array de caracteres e o seu comprimento e efetua o mecanismo de stuffing sobre o mesmo, retornando-o
+ * @param byteArray array de caracteres a percorrer para fazer o stuffing
+ * @param len tamanho do array de caracteres
+ * @return array de caracteres com stuffing aplicado
+*/
 unsigned char * stuffing(unsigned char * byteArray, int * len);
 
+/**
+ * destuffing - recebe um array de caracteres e o seu comprimento e efetua o mecanismo de destuffing sobre o mesmo, retornando-o
+ * @param byteArray array de caracteres a percorrer para fazer o destuffing
+ * @param len tamanho do array de caracteres
+ * @return array de caracteres com destuffing aplicado
+*/
 unsigned char * destuffing(unsigned char * byteArray, int * len);
 
 #endif //UTILS_H

@@ -14,9 +14,10 @@
 #include "utils.h"
 
 /** 
- * processFile - prepara o array de caracteres que será enviado do emissor para o receptor, colocando-o na variável global *buffer*
+ * processFile - prepara o pacote de dados que será enviado do emissor para o receptor, retornando-o
  * @param filePath - path do ficheiro imagem a processar
- * @return retorna o tamanho do array de caracteres, tamanho este que será passado como argumento à função llwrite() 
+ * @param size - tamanho do pacote de dados
+ * @return retorna o pacote de dados com o header de controlo e os bytes da imagem a transferir 
 */
 unsigned char* processFile(char* filePath, int *size) {
 
@@ -43,6 +44,11 @@ unsigned char* processFile(char* filePath, int *size) {
 	return control;
 }
 
+/** 
+ * createPicture - recebe o pacote de dados enviado do receptor e cria a imagem com os bytes recebidos
+ * @param pictureBuffer - pacote de dados recebido
+ * @return 0 em caso de sucesso; um valor negativo se ocorrer algum erro 
+*/
 int createPicture(unsigned char * pictureBuffer) {
 	FILE* picture; 
     picture = fopen("picture.gif", "wb+"); 
@@ -100,7 +106,6 @@ int main(int argc, char** argv) {
 		if (llopen(porta, RECEIVER)) {
 		
 			// leitura dos pacotes de dados recebidos
-			
 			unsigned char *mensagem;
 			unsigned char *mensagem_start;
 			unsigned char *mensagem_end;
@@ -142,7 +147,7 @@ int main(int argc, char** argv) {
 			control[2] = 1;				//L1
 			control[3] = lenght;		//V1
 
-			// escrita através do transmissor dos pacotes de dados
+			// escrita, através do canal de comunicação, dos pacotes de dados
 			if (llwrite(fd, control, 4))
 				if (llwrite(fd, buffer, lenght)) {
 					control[0] = C_End;			//C
@@ -152,7 +157,6 @@ int main(int argc, char** argv) {
 			llclose(fd, TRANSMITTER);
 
 	}
-
 
 	if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
 			perror("tcsetattr");

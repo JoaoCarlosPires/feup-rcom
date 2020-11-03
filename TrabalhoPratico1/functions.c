@@ -63,7 +63,7 @@ int llopen(char *porta, int flag)
 		do
 		{
 
-			write(fd, TRAMA_SET, sizeof(TRAMA_SET));
+			write(fd, TRAMA_SET, 5);
 			alarm(TIMEOUT);
 			alarm_active = FALSE;
 			write(STDOUT_FILENO, "llopen - Trama SET sent\n", 24);
@@ -142,7 +142,7 @@ int llopen(char *porta, int flag)
 		}
 
 		write(STDOUT_FILENO, "llopen - Trama SET received\n", 28);
-		write(fd, TRAMA_UA, sizeof(TRAMA_UA)); //send control UA message
+		write(fd, TRAMA_UA, 5); //send control UA message
 		write(STDOUT_FILENO, "llopen - Trama UA sent\n", 23);
 	}
 
@@ -361,7 +361,7 @@ int llclose(int fd, int flag)
 		do
 		{
 
-			write(fd, TRAMA_DISC, sizeof(TRAMA_DISC));
+			write(fd, TRAMA_DISC, 5);
 			write(STDOUT_FILENO, "llclose - Trama DISC sent\n", 26);
 			alarm(TIMEOUT);
 			alarm_active = FALSE;
@@ -383,7 +383,7 @@ int llclose(int fd, int flag)
 
 			write(STDOUT_FILENO, "llclose - Trama DISC received\n", 31);
 
-			write(fd, TRAMA_UA, sizeof(TRAMA_UA));
+			write(fd, TRAMA_UA, 5);
 
 			write(STDOUT_FILENO, "llclose - Trama UA sent\n", 24);
 		}
@@ -414,10 +414,12 @@ int llclose(int fd, int flag)
 		alarm_active = 0;
 		alarm(0);
 
+		unsigned char buf2;
+
 		do
 		{
 
-			write(fd, TRAMA_DISC, sizeof(TRAMA_DISC));
+			write(fd, TRAMA_DISC, 5);
 			write(STDOUT_FILENO, "llclose - Trama DISC sent\n", 26);
 			alarm(TIMEOUT);
 			alarm_active = FALSE;
@@ -425,8 +427,9 @@ int llclose(int fd, int flag)
 
 			while ((curr_state != FINISH) && (!alarm_active))
 			{
-				read(fd, &buf, 1);
-				curr_state = stateMachine(curr_state, &buf, C_UA, A2);
+				read(fd, &buf2, 1);
+				
+				curr_state = stateMachine(curr_state, &buf2, C_UA, A2);
 			}
 		} while (alarm_active && (allarms_called < MAXALARMS));
 

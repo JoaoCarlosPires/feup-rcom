@@ -60,8 +60,12 @@ int stateMachine(int curr_state, unsigned char *input, int C, int A)
 
 		if (*input == A)
 			curr_state = A_RCV;
-		else
+		else if(*input == FLAG){
+			curr_state = FLAG_RCV;
+		}else{
 			curr_state = START;
+		}
+			
 		break;
 
 	case A_RCV:

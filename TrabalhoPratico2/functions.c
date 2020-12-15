@@ -24,7 +24,7 @@ void establishConnection(char *serverAddr)
         exit(0);
     }
 
-    printf("Connection established w/ success\n");
+    write(STDOUT_FILENO, "[Connection 1 established w/ success]\n", 38);
 }
 
 void establishConnection2(char *serverAddr, int port)
@@ -51,7 +51,7 @@ void establishConnection2(char *serverAddr, int port)
         exit(0);
     }
 
-    printf("2nd Connection established w/ success\n");
+    write(STDOUT_FILENO, "[Connection 2 established w/ success]\n", 38);
 }
 
 char *getFileName(char *filepath) {

@@ -27,6 +27,12 @@
 #define SEARCH_THIRD 5
 #define GETTING_LAST 6
 
+#define FTP 0
+#define USER 1
+#define PASSWORD 2
+#define HOST 3
+#define PATH 4
+
 int sockfd;
 struct sockaddr_in server_addr;
 

@@ -1,5 +1,11 @@
 #include "functions.h"
 
+/*
+Check if the user and password is in the argument. 
+If it isn't OR if there's only an user without pass or pass without user, 
+assume it's anonymous mode
+*/
+
 int main(int argc, char *argv[])
 {
 
@@ -9,65 +15,184 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    char *url = argv[1]; //    ftp://[<user>:<password>@]<host>/<url-path>
+    char *url = argv[1]; 
 
-    int hostRead = -1;
-    int j = 0;
+    // ftp://<host>/<url-path> 
+    // or
+    // ftp://[<user>:<password>@]<host>/<url-path> 
+
+    int index = 0;
+
     char *host = malloc(50);
     char *filepath = malloc(100);
-    for (long int i = 0; i < strlen(url); i++)
-    {
-        if (hostRead == -2) {
-            filepath[j] = url[i];
-            j++;
-        }
-        else if (hostRead >= 0)
-        {
-            if (url[i] == '/')
-            {
-                hostRead = -2;
-            } else {
-            host[hostRead] = url[i];
-            hostRead++;
-            }
-        }
-        else if ((url[i] == '/') && (url[i + 1] == '/'))
-        {
-            hostRead = 0;
-            i++;
-        }
+    char *user = malloc(100);
+    char *password = malloc(100);
+
+    int state = FTP;
+    int type = 0; // 0 - both provided, 1 - only user, 2 - only password, 3 - none
+    int passwordFound = 0;
+    int userFound = 0;
+
+    for (long int i = 0; i < strlen(url); i++) {
+        switch (state) {
+            case FTP:
+                if ((url[i] == '/') && (url[i + 1] == '/')) {
+                    state = USER;
+                    i++;
+                }
+                break;
+            case USER:
+                if (url[i] == '/') {
+                    strcpy(host, user);
+                    state = PATH;
+                    index = 0;
+                }
+                else if (url[i] == ':') {
+                    if (index != 0) userFound = 1;
+                    state = PASSWORD;
+                    index = 0;
+                } else {
+                    user[index] = url[i];
+                    index++;
+                }
+                break;
+            case PASSWORD:
+                if (url[i] == '@') {
+                    if (index != 0) passwordFound = 1;
+                    state = HOST;
+                    index = 0;
+                } else {
+                    password[index] = url[i];
+                    index++;
+                }
+                break;
+            case HOST:
+                if (url[i] == '/') {
+                    state = PATH;
+                    index = 0;
+                } else {
+                    host[index] = url[i];
+                    index++;
+                }
+                break;
+            case PATH:
+                filepath[index] = url[i];
+                index++;
+                break;
+            default:
+                break;
+        }       
     }
+
+    type = passwordFound == 1 && userFound == 1 ? 0 : passwordFound == 0 && userFound == 1 ? 1 : passwordFound == 1 && userFound == 0 ? 2 : 3;
 
     getHostInfo(host);
 
     establishConnection(inet_ntoa(*((struct in_addr *)h->h_addr)));
 
-    char *messages[4] = {"user anonymous\n", "pass 123456\n", "pasv\n", "pub/parrot/last-sync.txt"};
+    char *messages[3];
+    messages[2] = "pasv\n";
 
+    if (type == 3) {        // case ftp://host/path
+        
+
+        // ask if wants anonymous mode
+        write(STDOUT_FILENO, "Do you want to user anonymous mode? [y/N] ", 42);
+        char option[2];
+        fgets(option, 2, stdin);
+
+        if (strcmp(option, "y") || strcmp(option, "Y")) {
+
+            messages[0] = "user anonymous";
+            messages[1] = "pass 123456";
+
+        } else {
+            // ask password and user
+            
+            write(STDOUT_FILENO, "Please provide an user: ", 24);
+            char finalUser[256];
+            fgets(finalUser, sizeof(finalUser), stdin);
+            messages[0] = finalUser;
+
+            write(STDOUT_FILENO, "Please provide a password: ", 27);
+            char finalPassword[256];
+            fgets(finalPassword, sizeof(finalPassword), stdin);
+            messages[1] = finalPassword;
+        
+        }
+
+    } else if (type == 2) { // case ftp://:password@host/path
+        
+        char *finalPassword = malloc(strlen("password ") + strlen(password) + 1);
+        strcpy(finalPassword, "password ");
+        strcat(finalPassword, password);
+        messages[1] = finalPassword;
+        
+        // ask user
+
+        write(STDOUT_FILENO, "Please provide an user: ", 24);
+        char finalUser[256];
+        fgets(finalUser, sizeof(finalUser), stdin);
+        messages[0] = finalUser;
+    
+    } else if (type == 1) { // case ftp://user:@host/path
+    
+        char *finalUser = malloc(strlen("user ") + strlen(user) + 1);
+        strcpy(finalUser, "user ");
+        strcat(finalUser, user);
+        messages[0] = finalUser;
+
+        // ask password
+
+        write(STDOUT_FILENO, "Please provide a password: ", 27);
+        char finalPassword[256];
+        fgets(finalPassword, sizeof(finalPassword), stdin);
+        messages[1] = finalPassword;
+
+    } else if (type == 0) { // case ftp://user:password@host/path
+    
+        char *finalUser = malloc(strlen("user ") + strlen(user) + 1);
+        strcpy(finalUser, "user ");
+        strcat(finalUser, user);
+        messages[0] = finalUser;
+
+        char *finalPassword = malloc(strlen("password ") + strlen(password) + 1);
+        strcpy(finalPassword, "password ");
+        strcat(finalPassword, password);
+        messages[1] = finalPassword;
+    }
+    
     char buf = ' ';
 
-    write(sockfd, messages[0], strlen(messages[0])); // user anonymous
+    write(sockfd, messages[0], strlen(messages[0])); // user user
+    write(STDOUT_FILENO, "> ", 2);
+    write(STDOUT_FILENO, messages[0], strlen(messages[0]));
+    write(sockfd, "\n", 1); // new line
+    write(STDOUT_FILENO, "\n", 1);
 
     char * ip = malloc(50);
 
-    int state = START;
-    while (state != END)
+    int scnd_state = START;
+    while (scnd_state != END)
     {
 
         read(sockfd, &buf, 1);
+        write(STDOUT_FILENO, &buf, 1);
 
-        switch (state)
+        switch (scnd_state)
         {
         case START:
             if (buf == '3')
             {
                 read(sockfd, &buf, 1);
-                if (buf = '3')
+                write(STDOUT_FILENO, &buf, 1);
+                if (buf == '3')
                 {
                     read(sockfd, &buf, 1);
-                    if (buf = '1')
+                    write(STDOUT_FILENO, &buf, 1);
+                    if (buf == '1')
                     {
-                        state = FIRST_ANS;
+                        scnd_state = FIRST_ANS;
                     }
                 }
             }
@@ -75,20 +200,26 @@ int main(int argc, char *argv[])
         case FIRST_ANS:
             if (buf == '\n')
             {
-                write(sockfd, messages[1], strlen(messages[1])); // pass qualquer-password
-                state = SEARCH_SCND;
+                write(sockfd, messages[1], strlen(messages[1])); // pass password
+                write(STDOUT_FILENO, "> ", 2);
+                write(STDOUT_FILENO, messages[1], strlen(messages[1]));
+                write(sockfd, "\n", 1);
+                write(STDOUT_FILENO, "\n", 1);
+                scnd_state = SEARCH_SCND;
             }
             break;
         case SEARCH_SCND:
             if (buf == '2')
             {
                 read(sockfd, &buf, 1);
-                if (buf = '3')
+                write(STDOUT_FILENO, &buf, 1);
+                if (buf == '3')
                 {
                     read(sockfd, &buf, 1);
-                    if (buf = '0')
+                    write(STDOUT_FILENO, &buf, 1);
+                    if (buf == '0')
                     {
-                        state = SCND_ANS;
+                        scnd_state = SCND_ANS;
                     }
                 }
             }
@@ -97,19 +228,23 @@ int main(int argc, char *argv[])
             if (buf == '\n')
             {
                 write(sockfd, messages[2], strlen(messages[2])); // pasv
-                state = SEARCH_THIRD;
+                write(STDOUT_FILENO, "> ", 2);
+                write(STDOUT_FILENO, messages[2], strlen(messages[2]));
+                scnd_state = SEARCH_THIRD;
             }
             break;
         case SEARCH_THIRD:
             if (buf == '2')
             {
                 read(sockfd, &buf, 1);
-                if (buf = '2')
+                write(STDOUT_FILENO, &buf, 1);
+                if (buf == '2')
                 {
                     read(sockfd, &buf, 1);
-                    if (buf = '7')
+                    write(STDOUT_FILENO, &buf, 1);
+                    if (buf == '7')
                     {
-                        state = GETTING_LAST;
+                        scnd_state = GETTING_LAST;
                     }
                 }
             }
@@ -118,15 +253,18 @@ int main(int argc, char *argv[])
             if (buf == '(') {
                 int i = 0;
                 read(sockfd, &buf, 1);
+                write(STDOUT_FILENO, &buf, 1);
                 do {
                    ip[i] = buf;
                    i++;
                    read(sockfd, &buf, 1); 
+                   write(STDOUT_FILENO, &buf, 1);
                 } while (buf != ')');
                 while(buf != '\n') {
                     read(sockfd, &buf, 1);    
+                    write(STDOUT_FILENO, &buf, 1);
                 }
-                state = END;
+                scnd_state = END;
             }
             break;
         default:
@@ -138,9 +276,13 @@ int main(int argc, char *argv[])
 
     establishConnection2(inet_ntoa(*((struct in_addr *)h->h_addr)), port);
 
-    write(sockfd, "retr ", 5);  
+    write(sockfd, "retr ", 5);
+    write(STDOUT_FILENO, "> ", 2);
+    write(STDOUT_FILENO, "retr ", 5);   
     write(sockfd, filepath, strlen(filepath));
-    write(sockfd, "\n", 1);     
+    write(STDOUT_FILENO, filepath, strlen(filepath));
+    write(sockfd, "\n", 1);    
+    write(STDOUT_FILENO, "\n", 1);    
 
     char * contents = malloc(1080);
     int k = 0;
@@ -157,5 +299,7 @@ int main(int argc, char *argv[])
 
     close(sockfd);
     close(sockfd2);
+    
+
     return 0;
 }

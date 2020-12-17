@@ -112,19 +112,25 @@ int main(int argc, char *argv[])
             write(STDOUT_FILENO, "Please provide an user: ", 24);
             char finalUser[256];
             fgets(finalUser, sizeof(finalUser), stdin);
-            messages[0] = finalUser;
+            char *finalU = malloc(strlen("user ") + strlen(finalUser) + 1);
+            strcpy(finalU, "user ");
+            strcat(finalU, finalUser);
+            messages[0] = finalU;
 
             write(STDOUT_FILENO, "Please provide a password: ", 27);
             char finalPassword[256];
             fgets(finalPassword, sizeof(finalPassword), stdin);
-            messages[1] = finalPassword;
+            char *finalP = malloc(strlen("pass ") + strlen(finalPassword) + 1);
+            strcpy(finalP, "pass ");
+            strcat(finalP, finalPassword);
+            messages[1] = finalP;
         
         }
 
     } else if (type == 2) { // case ftp://:password@host/path
         
-        char *finalPassword = malloc(strlen("password ") + strlen(password) + 1);
-        strcpy(finalPassword, "password ");
+        char *finalPassword = malloc(strlen("pass ") + strlen(password) + 1);
+        strcpy(finalPassword, "pass ");
         strcat(finalPassword, password);
         messages[1] = finalPassword;
         
@@ -133,7 +139,10 @@ int main(int argc, char *argv[])
         write(STDOUT_FILENO, "Please provide an user: ", 24);
         char finalUser[256];
         fgets(finalUser, sizeof(finalUser), stdin);
-        messages[0] = finalUser;
+        char *finalU = malloc(strlen("user ") + strlen(finalUser) + 1);
+        strcpy(finalU, "user ");
+        strcat(finalU, finalUser);
+        messages[0] = finalU;
     
     } else if (type == 1) { // case ftp://user:@host/path
     
@@ -147,7 +156,10 @@ int main(int argc, char *argv[])
         write(STDOUT_FILENO, "Please provide a password: ", 27);
         char finalPassword[256];
         fgets(finalPassword, sizeof(finalPassword), stdin);
-        messages[1] = finalPassword;
+        char *finalP = malloc(strlen("pass ") + strlen(finalPassword) + 1);
+        strcpy(finalP, "pass ");
+        strcat(finalP, finalPassword);
+        messages[1] = finalP;
 
     } else if (type == 0) { // case ftp://user:password@host/path
     
@@ -156,8 +168,8 @@ int main(int argc, char *argv[])
         strcat(finalUser, user);
         messages[0] = finalUser;
 
-        char *finalPassword = malloc(strlen("password ") + strlen(password) + 1);
-        strcpy(finalPassword, "password ");
+        char *finalPassword = malloc(strlen("pass ") + strlen(password) + 1);
+        strcpy(finalPassword, "pass ");
         strcat(finalPassword, password);
         messages[1] = finalPassword;
     }
@@ -282,24 +294,21 @@ int main(int argc, char *argv[])
     write(sockfd, filepath, strlen(filepath));
     write(STDOUT_FILENO, filepath, strlen(filepath));
     write(sockfd, "\n", 1);    
-    write(STDOUT_FILENO, "\n", 1);    
-
-    char * contents = malloc(1080);
-    int k = 0;
-    while (read(sockfd2, &contents[k], 1) != 0) {
-        k++;
-    }
+    write(STDOUT_FILENO, "\n", 1);   
 
     char * filename = getFileName(filepath);
-	FILE *file = fopen(filename, "wb+");
+    int file = open(filename, O_CREAT | O_WRONLY, 0777);
+	    
+    char buffer[256];
+    int bytes;
+    while ((bytes = read(sockfd2, buffer, sizeof(256)))) {
+        write(file, buffer, bytes);
+    }   
 
-    fwrite(contents, 1, strlen(contents), file);
-
-  	fclose(file);
+  	close(file);
 
     close(sockfd);
     close(sockfd2);
     
-
     return 0;
 }

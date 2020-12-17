@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #define SERVER_PORT 21
 

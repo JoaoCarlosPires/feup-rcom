@@ -98,10 +98,12 @@ int main(int argc, char *argv[])
 
         // ask if wants anonymous mode
         write(STDOUT_FILENO, "Do you want to user anonymous mode? [y/N] ", 42);
-        char option[2];
-        fgets(option, 2, stdin);
+        char choice[256];
+        fgets(choice, sizeof(choice), stdin);
+        char finalchoice;
+        sscanf(choice, "%c", &finalchoice);
 
-        if (strcmp(option, "y") || strcmp(option, "Y")) {
+        if (finalchoice == 'y') {
 
             messages[0] = "user anonymous";
             messages[1] = "pass 123456";

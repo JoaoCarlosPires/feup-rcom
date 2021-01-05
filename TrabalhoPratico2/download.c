@@ -1,11 +1,5 @@
 #include "functions.h"
 
-/*
-Check if the user and password is in the argument. 
-If it isn't OR if there's only an user without pass or pass without user, 
-assume it's anonymous mode
-*/
-
 int main(int argc, char *argv[])
 {
 

@@ -71,7 +71,6 @@ char *getFileName(char *filepath) {
     return filename;
 }
 
-
 /*
 struct hostent {
 	char    *h_name;	    Official name of the host. 
